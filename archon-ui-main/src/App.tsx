@@ -5,7 +5,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { MCPPage } from './pages/MCPPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { MainLayout } from './components/layouts/MainLayout';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider } from './features/themes';
 import { ToastProvider } from './contexts/ToastContext';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { ProjectPage } from './pages/ProjectPage';

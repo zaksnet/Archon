@@ -6,7 +6,7 @@ import { KnowledgeItem, KnowledgeItemMetadata } from '../../services/knowledgeBa
 import { useCardTilt } from '../../hooks/useCardTilt';
 import { CodeViewerModal, CodeExample } from '../code/CodeViewerModal';
 import { EditKnowledgeItemModal } from './EditKnowledgeItemModal';
-import '../../styles/card-animations.css';
+import '../../features/themes/shared/styles/theme-animations.css';
 
 // Define GroupedKnowledgeItem interface locally
 interface GroupedKnowledgeItem {

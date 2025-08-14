@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../styles/toggle.css';
+import '../../features/themes/shared/styles/theme-animations.css';
 interface ToggleProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;

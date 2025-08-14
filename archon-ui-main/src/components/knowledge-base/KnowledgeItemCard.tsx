@@ -7,7 +7,7 @@ import { KnowledgeItem, knowledgeBaseService } from '../../services/knowledgeBas
 import { useCardTilt } from '../../hooks/useCardTilt';
 import { CodeViewerModal, CodeExample } from '../code/CodeViewerModal';
 import { EditKnowledgeItemModal } from './EditKnowledgeItemModal';
-import '../../styles/card-animations.css';
+import '../../features/themes/shared/styles/theme-animations.css';
 
 // Helper function to guess language from title
 const guessLanguageFromTitle = (title: string = ''): string => {

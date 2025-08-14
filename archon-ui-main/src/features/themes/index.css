@@ -1,0 +1,3 @@
+/* Import all theme styles */
+@import './shared/styles/theme-utilities.css';
+@import './shared/styles/theme-animations.css';
