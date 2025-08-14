@@ -5,7 +5,7 @@ import { ArchonChatPanel } from './ArchonChatPanel';
 import { X } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { credentialsService } from '../../services/credentialsService';
-import { isLmConfigured } from '../../utils/onboarding';
+import { isLmConfigured } from '../../features/onboarding';
 /**
  * Props for the MainLayout component
  */
@@ -101,11 +101,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     }, 1000); // Wait 1 second for initial app startup
   }, [showToast, navigate]); // Removed backendReady from dependencies to prevent double execution
 
-  // Check for onboarding redirect after backend is ready
+  // Check for onboarding redirect
   useEffect(() => {
     const checkOnboarding = async () => {
-      // Skip if not ready, already on onboarding, or already dismissed
-      if (!backendReady || location.pathname === '/onboarding') {
+      // Skip if already on onboarding or already dismissed
+      if (location.pathname === '/onboarding') {
         return;
       }
 
@@ -114,45 +114,41 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         return;
       }
 
-      try {
-        // Fetch credentials in parallel
-        const [ragCreds, apiKeyCreds] = await Promise.all([
-          credentialsService.getCredentialsByCategory('rag_strategy'),
-          credentialsService.getCredentialsByCategory('api_keys')
-        ]);
+      // If backend is ready, check credentials
+      if (backendReady) {
+        try {
+          // Fetch credentials in parallel
+          const [ragCreds, apiKeyCreds] = await Promise.all([
+            credentialsService.getCredentialsByCategory('rag_strategy'),
+            credentialsService.getCredentialsByCategory('api_keys')
+          ]);
 
-        // Check if LM is configured
-        const configured = isLmConfigured(ragCreds, apiKeyCreds);
-        
-        if (!configured) {
-          // Redirect to onboarding
+          // Check if LM is configured
+          const configured = isLmConfigured(ragCreds, apiKeyCreds);
+          
+          if (!configured) {
+            // Redirect to onboarding
+            navigate('/onboarding', { replace: true });
+          }
+        } catch (error) {
+          // If there's an error fetching credentials, assume not configured
+          console.error('ONBOARDING_CHECK_FAILED:', error);
           navigate('/onboarding', { replace: true });
         }
-      } catch (error) {
-        // Detailed error handling per alpha principles - fail loud but don't block
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const errorDetails = {
-          context: 'Onboarding configuration check',
-          pathname: location.pathname,
-          error: errorMessage,
-          timestamp: new Date().toISOString()
-        };
-        
-        // Log with full context and stack trace
-        console.error('ONBOARDING_CHECK_FAILED:', errorDetails, error);
-        
-        // Make error visible to user but don't block app functionality
-        showToast(
-          `Configuration check failed: ${errorMessage}. You can manually configure in Settings.`,
-          'warning'
-        );
-        
-        // Let user continue - onboarding is optional, they can configure manually
+      } else {
+        // If backend is not ready, redirect to onboarding anyway
+        // This ensures users can still access onboarding even if backend is down
+        navigate('/onboarding', { replace: true });
       }
     };
 
     checkOnboarding();
-  }, [backendReady, location.pathname, navigate, showToast]);
+  }, [backendReady, location.pathname, navigate]);
+
+  // Don't render layout for onboarding page
+  if (location.pathname === '/onboarding') {
+    return <>{children}</>;
+  }
 
   return <div className="relative min-h-screen bg-white dark:bg-black overflow-hidden">
       {/* Fixed full-page background grid that doesn't scroll */}
