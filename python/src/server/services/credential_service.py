@@ -249,7 +249,8 @@ class CredentialService:
 
         except Exception as e:
             logger.error(f"Error setting credential {key}: {e}")
-            return False
+            # Preserve the full error structure for better debugging
+            raise e
 
     async def delete_credential(self, key: str) -> bool:
         """Delete a credential."""
@@ -274,7 +275,8 @@ class CredentialService:
 
         except Exception as e:
             logger.error(f"Error deleting credential {key}: {e}")
-            return False
+            # Preserve the full error structure for better debugging
+            raise e
 
     async def get_credentials_by_category(self, category: str) -> dict[str, Any]:
         """Get all credentials for a specific category."""
@@ -322,7 +324,8 @@ class CredentialService:
 
         except Exception as e:
             logger.error(f"Error getting credentials for category {category}: {e}")
-            return {}
+            # Preserve the full error structure for better debugging
+            raise e
 
     async def list_all_credentials(self) -> list[CredentialItem]:
         """Get all credentials as a list of CredentialItem objects (for Settings UI)."""
@@ -371,7 +374,8 @@ class CredentialService:
 
         except Exception as e:
             logger.error(f"Error listing credentials: {e}")
-            return []
+            # Preserve the full error structure for better debugging
+            raise e
 
     def get_config_as_env_dict(self) -> dict[str, str]:
         """

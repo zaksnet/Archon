@@ -54,6 +54,7 @@ export interface CodeExtractionSettings {
 }
 
 import { getApiUrl } from '../config/api';
+import { extractErrorDetails, createDetailedError } from '../utils/errorUtils';
 
 class CredentialsService {
   private baseUrl = getApiUrl();
@@ -184,7 +185,19 @@ class CredentialsService {
     });
     
     if (!response.ok) {
-      throw new Error('Failed to update credential');
+      let errorMessage = 'Failed to update credential';
+      let errorDetails = '';
+      
+      try {
+        const errorData = await response.json();
+        console.log('Raw error response from backend (update):', errorData);
+        errorDetails = extractErrorDetails(errorData);
+      } catch {
+        // If we can't parse the error response, use the status text
+        errorDetails = response.statusText;
+      }
+      
+      throw createDetailedError(errorMessage, response, errorDetails);
     }
     
     return response.json();
@@ -200,7 +213,19 @@ class CredentialsService {
     });
     
     if (!response.ok) {
-      throw new Error('Failed to create credential');
+      let errorMessage = 'Failed to create credential';
+      let errorDetails = '';
+      
+      try {
+        const errorData = await response.json();
+        console.log('Raw error response from backend:', errorData);
+        errorDetails = extractErrorDetails(errorData);
+      } catch {
+        // If we can't parse the error response, use the status text
+        errorDetails = response.statusText;
+      }
+      
+      throw createDetailedError(errorMessage, response, errorDetails);
     }
     
     return response.json();
@@ -261,12 +286,12 @@ class CredentialsService {
         const key = cred.key as keyof CodeExtractionSettings;
         if (typeof settings[key] === 'number') {
           if (key === 'MAX_PROSE_RATIO') {
-            settings[key] = parseFloat(cred.value || '0.15');
+            (settings as any)[key] = parseFloat(cred.value || '0.15');
           } else {
-            settings[key] = parseInt(cred.value || settings[key].toString(), 10);
+            (settings as any)[key] = parseInt(cred.value || settings[key].toString(), 10);
           }
         } else if (typeof settings[key] === 'boolean') {
-          settings[key] = cred.value === 'true';
+          (settings as any)[key] = cred.value === 'true';
         }
       }
     });
