@@ -8,20 +8,37 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    environmentOptions: {
+      jsdom: {
+        resources: 'usable',
+      },
+    },
     setupFiles: './test/setup.ts',
     include: [
       'test/components.test.tsx',
       'test/pages.test.tsx', 
       'test/user_flows.test.tsx',
-      'test/errors.test.tsx'
+      'test/errors.test.tsx',
+      'src/**/*.test.{ts,tsx}'
     ],
     exclude: ['node_modules', 'dist', '.git', '.cache', 'test.backup', '*.backup/**', 'test-backups'],
-    reporters: ['dot', 'json'],
+    reporters: ['default'],
     outputFile: { 
       json: './public/test-results/test-results.json' 
     },
-    testTimeout: 10000, // 10 seconds timeout
-    hookTimeout: 10000, // 10 seconds for setup/teardown
+    testTimeout: 5000, // 5 seconds timeout
+    hookTimeout: 5000, // 5 seconds for setup/teardown
+    teardownTimeout: 1000, // 1 second teardown timeout
+    // Use threads pool with single thread to avoid hanging
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true,
+        isolate: false,
+      }
+    },
+    // Disable file parallelism to prevent hanging
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: [

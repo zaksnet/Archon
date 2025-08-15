@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { OnboardingValidator, type ValidationResult } from '../utils/validation';
-import { OnboardingErrorBoundary } from '../components/OnboardingErrorBoundary';
+import { OnboardingErrorBoundary } from '../components/error-handling/OnboardingErrorBoundary';
 import { useOnboardingError } from '../hooks/useOnboardingError';
 
 // Mock the toast context

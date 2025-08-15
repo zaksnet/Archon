@@ -5,6 +5,10 @@ import '@testing-library/jest-dom/vitest'
 // Clean up after each test
 afterEach(() => {
   cleanup()
+  // Clear all timers to prevent hanging
+  vi.clearAllTimers()
+  // Clear all mocks
+  vi.clearAllMocks()
 })
 
 // Simple mocks only - fetch and WebSocket
@@ -23,15 +27,11 @@ class MockWebSocket {
   onclose: ((event: CloseEvent) => void) | null = null
   onerror: ((event: Event) => void) | null = null
   onmessage: ((event: MessageEvent) => void) | null = null
-  readyState: number = WebSocket.CONNECTING
+  readyState: number = WebSocket.OPEN // Start as OPEN to avoid timer
   
   constructor(public url: string) {
-    setTimeout(() => {
-      this.readyState = WebSocket.OPEN
-      if (this.onopen) {
-        this.onopen(new Event('open'))
-      }
-    }, 0)
+    // Immediately set as open without using setTimeout
+    this.readyState = WebSocket.OPEN
   }
   
   send() {}

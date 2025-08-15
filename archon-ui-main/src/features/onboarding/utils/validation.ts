@@ -15,8 +15,8 @@ export interface ValidationResult {
 
 // API Key validation patterns
 const API_KEY_PATTERNS = {
-  openai: /^sk-[a-zA-Z0-9]{32,}$/,
-  anthropic: /^sk-ant-[a-zA-Z0-9]{32,}$/,
+  openai: /^sk-[a-zA-Z0-9_-]{20,}$/,
+  anthropic: /^sk-ant-[a-zA-Z0-9_-]{20,}$/,
   google: /^AIza[a-zA-Z0-9_-]{35}$/,
   cohere: /^cohere-[a-zA-Z0-9]{32,}$/,
   huggingface: /^hf_[a-zA-Z0-9]{32,}$/,
@@ -301,8 +301,7 @@ export class OnboardingValidator {
   static sanitizeApiKey(apiKey: string): string {
     return apiKey
       .trim()
-      .replace(/\s+/g, '') // Remove all whitespace
-      .replace(/[^\w\-_]/g, ''); // Remove special characters except underscore and dash
+      .replace(/\s+/g, ''); // Remove all whitespace
   }
 
   /**
