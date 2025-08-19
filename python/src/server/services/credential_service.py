@@ -152,8 +152,25 @@ class CredentialService:
             return credentials
 
         except Exception as e:
-            logger.error(f"Error loading credentials: {e}")
-            raise
+            error_msg = str(e)
+            
+            # Check if error is due to missing table
+            if "relation" in error_msg and "does not exist" in error_msg:
+                logger.warning(
+                    f"Database tables not found - likely migration not run yet. "
+                    f"Using empty credential cache. Error: {error_msg}"
+                )
+                # Initialize with empty cache so backend can still start
+                self._cache = {}
+                self._cache_initialized = True
+                return {}
+            else:
+                # For other errors, still log but don't fail
+                logger.error(f"Error loading credentials: {e}")
+                # Initialize with empty cache to allow backend to start
+                self._cache = {}
+                self._cache_initialized = True
+                return {}
 
     async def get_credential(self, key: str, default: Any = None, decrypt: bool = True) -> Any:
         """Get a credential value by key."""
@@ -248,7 +265,11 @@ class CredentialService:
             return True
 
         except Exception as e:
-            logger.error(f"Error setting credential {key}: {e}")
+            error_msg = str(e)
+            if "relation" in error_msg and "does not exist" in error_msg:
+                logger.warning(f"Cannot set credential {key} - database tables not found. Run migration first.")
+            else:
+                logger.error(f"Error setting credential {key}: {e}")
             return False
 
     async def delete_credential(self, key: str) -> bool:

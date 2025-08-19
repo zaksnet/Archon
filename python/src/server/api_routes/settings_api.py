@@ -16,6 +16,7 @@ from pydantic import BaseModel
 # Import logging
 from ..config.logfire_config import logfire
 from ..services.credential_service import credential_service, initialize_credentials
+from ..services.migration_service import MigrationService
 from ..utils import get_supabase_client
 
 router = APIRouter(prefix="/api", tags=["settings"])
@@ -315,20 +316,78 @@ async def database_metrics():
         )
 
         total_records = sum(tables_info.values())
+        
+        # Check migration status
+        migration_service = MigrationService(supabase_client)
+        migration_status = await migration_service.check_migration_status()
+        
         logfire.info(
-            f"Database metrics retrieved | total_records={total_records} | tables={tables_info}"
+            f"Database metrics retrieved | total_records={total_records} | tables={tables_info} | migration_complete={migration_status.is_complete}"
         )
 
         return {
-            "status": "healthy",
+            "status": "healthy" if migration_status.is_complete else "needs_migration",
             "database": "supabase",
             "tables": tables_info,
             "total_records": total_records,
+            "migration_status": migration_service.to_dict(migration_status),
             "timestamp": datetime.now().isoformat(),
         }
 
     except Exception as e:
         logfire.error(f"Error getting database metrics | error={str(e)}")
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+
+@router.post("/database/execute-migration")
+async def execute_database_migration():
+    """Execute the database migration script."""
+    try:
+        logfire.info("Executing database migration")
+        supabase_client = get_supabase_client()
+        migration_service = MigrationService(supabase_client)
+        
+        # Execute the migration
+        result = await migration_service.execute_migration()
+        
+        logfire.info(f"Migration execution result: {result.get('message', 'Unknown')}")
+        
+        # Return the result
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error executing migration: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to execute migration: {str(e)}"
+        )
+
+@router.get("/database/migration-status")
+async def database_migration_status():
+    """Check database migration status."""
+    try:
+        logfire.info("Checking database migration status")
+        supabase_client = get_supabase_client()
+        
+        # Create migration service and check status
+        migration_service = MigrationService(supabase_client)
+        migration_status = await migration_service.check_migration_status()
+        migration_script_path = await migration_service.get_migration_script_path()
+        
+        # Convert to dict and add script path
+        status_dict = migration_service.to_dict(migration_status)
+        status_dict["script_path"] = migration_script_path
+        
+        logfire.info(
+            f"Migration status checked | is_complete={migration_status.is_complete} | "
+            f"has_connection={migration_status.has_connection} | "
+            f"missing_tables={len(migration_status.missing_tables)}"
+        )
+        
+        return status_dict
+        
+    except Exception as e:
+        logfire.error(f"Error checking migration status | error={str(e)}")
         raise HTTPException(status_code=500, detail={"error": str(e)})
 
 

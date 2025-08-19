@@ -1,8 +1,10 @@
 import { credentialsService } from './credentialsService';
+import { MigrationService } from './migrationService';
 
 interface HealthCheckCallback {
   onDisconnected: () => void;
   onReconnected: () => void;
+  onMigrationRequired?: () => void;
 }
 
 // Health check interval constant - 30 seconds for reasonable balance
@@ -42,13 +44,50 @@ class ServerHealthService {
         const data = await response.json();
         // Accept healthy, online, or initializing (server is starting up)
         const isHealthy = data.status === 'healthy' || data.status === 'online' || data.status === 'initializing';
+        
+        // Check for migration status if present
+        if (data.migration_status && !data.migration_status.is_complete) {
+          // Migration is required
+          if (this.callbacks?.onMigrationRequired) {
+            this.callbacks.onMigrationRequired();
+          }
+        }
+        
         return isHealthy;
       }
       console.error('🏥 [Health] Response not OK:', response.status);
+      
+      // Check if it's a database/migration related error
+      if (response.status === 500) {
+        const errorData = await response.json().catch(() => null);
+        if (errorData?.error && (
+          errorData.error.includes('database') ||
+          errorData.error.includes('relation') ||
+          errorData.error.includes('does not exist') ||
+          errorData.error.includes('migration')
+        )) {
+          // Database/migration issue detected
+          const migrationStatus = await MigrationService.checkMigrationStatus();
+          if (MigrationService.isMigrationNeeded(migrationStatus) && this.callbacks?.onMigrationRequired) {
+            this.callbacks.onMigrationRequired();
+          }
+        }
+      }
+      
       return false;
     } catch (error) {
       console.error('🏥 [Health] Health check failed:', error);
-      // Health check failed
+      
+      // Try to check migration status as a fallback
+      try {
+        const migrationStatus = await MigrationService.checkMigrationStatus();
+        if (MigrationService.isMigrationNeeded(migrationStatus) && this.callbacks?.onMigrationRequired) {
+          this.callbacks.onMigrationRequired();
+        }
+      } catch (migrationError) {
+        // Ignore migration check errors
+      }
+      
       return false;
     }
   }

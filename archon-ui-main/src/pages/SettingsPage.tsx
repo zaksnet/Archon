@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader, Settings, ChevronDown, ChevronUp, Palette, Key, Brain, Code, Activity, FileCode, Bug } from 'lucide-react';
+import { Loader, Settings, ChevronDown, ChevronUp, Palette, Key, Brain, Code, Activity, FileCode, Bug, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../contexts/ToastContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -13,7 +13,9 @@ import { IDEGlobalRules } from '../components/settings/IDEGlobalRules';
 import { ButtonPlayground } from '../components/settings/ButtonPlayground';
 import { CollapsibleSettingsCard } from '../components/ui/CollapsibleSettingsCard';
 import { BugReportButton } from '../components/bug-report/BugReportButton';
+import { MigrationStatusModal } from '../components/settings/MigrationStatusModal';
 import { credentialsService, RagSettings, CodeExtractionSettings as CodeExtractionSettingsType } from '../services/credentialsService';
+import { MigrationService, MigrationStatus } from '../services/migrationService';
 
 export const SettingsPage = () => {
   const [ragSettings, setRagSettings] = useState<RagSettings>({
@@ -41,6 +43,8 @@ export const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showButtonPlayground, setShowButtonPlayground] = useState(false);
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [migrationStatus, setMigrationStatus] = useState<MigrationStatus | null>(null);
 
   const { showToast } = useToast();
   const { projectsEnabled } = useSettings();
@@ -54,6 +58,7 @@ export const SettingsPage = () => {
   // Load settings on mount
   useEffect(() => {
     loadSettings();
+    checkMigrationStatus();
   }, []);
 
   const loadSettings = async () => {
@@ -74,6 +79,23 @@ export const SettingsPage = () => {
       showToast('Failed to load settings', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkMigrationStatus = async () => {
+    try {
+      const status = await MigrationService.checkMigrationStatus();
+      setMigrationStatus(status);
+      
+      // Automatically show modal if migration is needed and not yet acknowledged
+      if (MigrationService.isMigrationNeeded(status)) {
+        const acknowledged = localStorage.getItem('migration_acknowledged');
+        if (!acknowledged) {
+          setShowMigrationModal(true);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check migration status:', err);
     }
   };
 
@@ -116,6 +138,56 @@ export const SettingsPage = () => {
               defaultExpanded={true}
             >
               <FeaturesSection />
+            </CollapsibleSettingsCard>
+          </motion.div>
+          
+          {/* Migration Status Card */}
+          <motion.div variants={itemVariants}>
+            <CollapsibleSettingsCard
+              title="Database Migration"
+              icon={Database}
+              accentColor={migrationStatus?.is_complete ? "green" : "yellow"}
+              storageKey="migration-status"
+              defaultExpanded={!migrationStatus?.is_complete}
+            >
+              <div className="space-y-4">
+                {migrationStatus ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Status:</span>
+                      <span className={`text-sm font-medium ${
+                        migrationStatus.is_complete ? 'text-green-600' : 'text-yellow-600'
+                      }`}>
+                        {migrationStatus.is_complete ? 'Complete' : 'Migration Required'}
+                      </span>
+                    </div>
+                    
+                    {migrationStatus.has_connection && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Tables:</span>
+                        <span className="text-sm">
+                          {Object.values(migrationStatus.tables || {}).filter(t => t.exists).length} / {Object.keys(migrationStatus.tables || {}).length}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <button
+                      onClick={() => setShowMigrationModal(true)}
+                      className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                    >
+                      View Details
+                    </button>
+                    
+                    {!migrationStatus.is_complete && (
+                      <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
+                        Database migration is required. Click "View Details" for instructions.
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-sm text-gray-500">Checking migration status...</div>
+                )}
+              </div>
             </CollapsibleSettingsCard>
           </motion.div>
           {projectsEnabled && (
@@ -255,6 +327,18 @@ export const SettingsPage = () => {
           <p className="text-red-600 dark:text-red-400">{error}</p>
         </motion.div>
       )}
+
+      {/* Migration Status Modal */}
+      <MigrationStatusModal
+        isOpen={showMigrationModal}
+        onClose={() => {
+          setShowMigrationModal(false);
+          // Mark as acknowledged so it doesn't auto-show again
+          if (migrationStatus && !migrationStatus.is_complete) {
+            localStorage.setItem('migration_acknowledged', 'true');
+          }
+        }}
+      />
     </motion.div>
   );
 };

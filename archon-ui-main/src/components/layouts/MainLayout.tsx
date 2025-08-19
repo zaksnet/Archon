@@ -6,6 +6,8 @@ import { X } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { credentialsService } from '../../services/credentialsService';
 import { isLmConfigured } from '../../utils/onboarding';
+import { MigrationStatusModal } from '../settings/MigrationStatusModal';
+import { MigrationService, MigrationStatus } from '../../services/migrationService';
 /**
  * Props for the MainLayout component
  */
@@ -29,6 +31,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [backendReady, setBackendReady] = useState(false);
+  
+  // Migration status state
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [migrationStatus, setMigrationStatus] = useState<MigrationStatus | null>(null);
+  const [migrationChecked, setMigrationChecked] = useState(false);
 
   // Check backend readiness
   useEffect(() => {
@@ -58,6 +65,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           if (healthData.ready === true) {
             console.log('✅ Backend is fully initialized');
             setBackendReady(true);
+            
+            // Check migration status from health endpoint
+            if (healthData.migration_status && !healthData.migration_status.is_complete) {
+              console.log('⚠️ Database migration required');
+              checkMigrationStatus();
+            }
           } else {
             // Backend is starting up but not ready yet
             console.log(`🔄 Backend initializing... (attempt ${retryCount + 1}/${maxRetries}):`, healthData.message || 'Loading credentials...');
@@ -154,6 +167,115 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     checkOnboarding();
   }, [backendReady, location.pathname, navigate, showToast]);
 
+  // Check migration status
+  const checkMigrationStatus = async () => {
+    // Don't check if already checked in this session
+    if (migrationChecked) return;
+    
+    try {
+      const status = await MigrationService.checkMigrationStatus();
+      setMigrationStatus(status);
+      setMigrationChecked(true);
+      
+      // Show modal if migration is needed and not acknowledged
+      if (MigrationService.isMigrationNeeded(status)) {
+        const acknowledged = sessionStorage.getItem('migration_acknowledged_session');
+        if (!acknowledged) {
+          console.log('🚨 Database migration required - showing modal');
+          setShowMigrationModal(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check migration status:', error);
+      // If we get a 500 error, it's likely due to missing tables
+      // Check if it's a database-related error and show the modal
+      if (error instanceof Error && error.message.includes('500')) {
+        const acknowledged = sessionStorage.getItem('migration_acknowledged_session');
+        if (!acknowledged) {
+          console.log('🚨 Database error detected - likely migration required');
+          setShowMigrationModal(true);
+          setMigrationChecked(true); // Mark as checked to prevent repeated modals
+        }
+      }
+    }
+  };
+
+  // Check migration status immediately on mount and when backend is ready
+  useEffect(() => {
+    // Always check migration status on mount, regardless of backend status
+    if (!migrationChecked) {
+      // Small delay to let component mount properly
+      const timeoutId = setTimeout(() => {
+        checkMigrationStatus();
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, []); // Empty deps - only run once on mount
+
+  // Also check when backend becomes ready (in case first check failed)
+  useEffect(() => {
+    if (backendReady && !migrationChecked) {
+      checkMigrationStatus();
+    }
+  }, [backendReady, migrationChecked]);
+
+  // Intercept fetch errors to detect migration issues
+  useEffect(() => {
+    // Store original fetch
+    const originalFetch = window.fetch;
+    
+    // Override fetch to detect 500 errors
+    window.fetch = async (...args) => {
+      try {
+        const response = await originalFetch(...args);
+        
+        // Check if it's a 500 error to our API
+        if (response.status === 500 && !migrationChecked) {
+          const url = typeof args[0] === 'string' ? args[0] : args[0].url;
+          if (url && url.includes('/api/')) {
+            // Likely a database migration issue
+            const acknowledged = sessionStorage.getItem('migration_acknowledged_session');
+            if (!acknowledged) {
+              console.log('🚨 API returned 500 error - checking migration status');
+              checkMigrationStatus();
+            }
+          }
+        }
+        
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    };
+    
+    // Cleanup: restore original fetch
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [migrationChecked]);
+
+  // Also check on any API errors that might indicate missing tables
+  useEffect(() => {
+    const handleGlobalError = (event: ErrorEvent) => {
+      const errorMessage = event.error?.message || event.message || '';
+      
+      // Check if error is database-related
+      if (
+        errorMessage.includes('relation') && errorMessage.includes('does not exist') ||
+        errorMessage.includes('archon_') ||
+        errorMessage.includes('migration')
+      ) {
+        if (!migrationChecked) {
+          checkMigrationStatus();
+        }
+      }
+    };
+    
+    window.addEventListener('error', handleGlobalError);
+    return () => window.removeEventListener('error', handleGlobalError);
+  }, [migrationChecked]);
+
   return <div className="relative min-h-screen bg-white dark:bg-black overflow-hidden">
       {/* Fixed full-page background grid that doesn't scroll */}
       <div className="fixed inset-0 neon-grid pointer-events-none z-0"></div>
@@ -195,5 +317,24 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         {/* Knowledge Chat Panel */}
         <ArchonChatPanel data-id="archon-chat" />
       </div>
+      
+      {/* Migration Status Modal - Global check on all pages */}
+      <MigrationStatusModal
+        isOpen={showMigrationModal}
+        onClose={() => {
+          setShowMigrationModal(false);
+          // Mark as acknowledged for this session only
+          sessionStorage.setItem('migration_acknowledged_session', 'true');
+          
+          // Show toast with instructions
+          if (migrationStatus && !migrationStatus.is_complete) {
+            showToast(
+              'Database migration required. You can access the migration tool anytime from Settings → Database Migration.',
+              'info',
+              8000
+            );
+          }
+        }}
+      />
     </div>;
 };

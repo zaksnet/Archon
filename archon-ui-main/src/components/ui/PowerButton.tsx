@@ -72,16 +72,16 @@ export const PowerButton: React.FC<PowerButtonProps> = ({
     }
   };
 
-  const styles = colorMap[color];
+  const styles = colorMap[color] || colorMap.blue; // Fallback to blue if color not found
 
   return (
     <motion.button
       onClick={onClick}
       className={`
         relative rounded-full border-2 transition-all duration-300
-        ${styles.border}
-        ${isOn ? styles.glow : 'shadow-[0_0_5px_rgba(0,0,0,0.3)]'}
-        ${styles.glowHover}
+        ${styles?.border || 'border-blue-500'}
+        ${isOn ? (styles?.glow || 'shadow-[0_0_20px_rgba(59,130,246,0.8)]') : 'shadow-[0_0_5px_rgba(0,0,0,0.3)]'}
+        ${styles?.glowHover || 'hover:shadow-[0_0_25px_rgba(59,130,246,1)]'}
         bg-gradient-to-b from-gray-900 to-black
         hover:scale-110
         active:scale-95
@@ -94,7 +94,7 @@ export const PowerButton: React.FC<PowerButtonProps> = ({
       <motion.div
         className={`
           absolute inset-[-4px] rounded-full border-2
-          ${isOn ? styles.border : 'border-transparent'}
+          ${isOn ? (styles?.border || 'border-blue-500') : 'border-transparent'}
           blur-sm
         `}
         animate={{
@@ -111,7 +111,7 @@ export const PowerButton: React.FC<PowerButtonProps> = ({
       <motion.div
         className={`
           absolute inset-[2px] rounded-full
-          ${isOn ? styles.fill : ''}
+          ${isOn ? (styles?.fill || 'bg-blue-500') : ''}
           blur-md opacity-20
         `}
         animate={{

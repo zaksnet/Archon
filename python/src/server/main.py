@@ -94,6 +94,7 @@ async def lifespan(app: FastAPI):
         # Initialize crawling context
         try:
             await initialize_crawler()
+            api_logger.info("✅ Crawler initialized")
         except Exception as e:
             api_logger.warning(f"Could not fully initialize crawling context: {str(e)}")
 
@@ -230,8 +231,10 @@ async def root():
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    """Health check endpoint that indicates true readiness including credential loading."""
+    """Health check endpoint that indicates true readiness including credential loading and migration status."""
     from datetime import datetime
+    from .services.migration_service import MigrationService
+    from .utils import get_supabase_client
 
     # Check if initialization is complete
     if not _initialization_complete:
@@ -243,12 +246,33 @@ async def health_check():
             "ready": False,
         }
 
+    # Check migration status
+    migration_info = None
+    try:
+        supabase_client = get_supabase_client()
+        migration_service = MigrationService(supabase_client)
+        migration_status = await migration_service.check_migration_status()
+        migration_info = {
+            "is_complete": migration_status.is_complete,
+            "has_connection": migration_status.has_connection,
+            "missing_tables_count": len(migration_status.missing_tables),
+            "summary": migration_status.summary
+        }
+    except Exception as e:
+        logger.warning(f"Could not check migration status in health endpoint: {e}")
+        migration_info = {
+            "is_complete": False,
+            "has_connection": False,
+            "error": str(e)
+        }
+
     return {
         "status": "healthy",
         "service": "archon-backend",
         "timestamp": datetime.now().isoformat(),
         "ready": True,
         "credentials_loaded": True,
+        "migration_status": migration_info,
     }
 
 
