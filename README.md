@@ -43,6 +43,7 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - [Supabase](https://supabase.com/) account (free tier or local Supabase both work)
 - [OpenAI API key](https://platform.openai.com/api-keys) (Gemini and Ollama are supported too!)
+- [Make](https://www.gnu.org/software/make/) (see [Installing Make](#installing-make) below)
 
 ### Setup Instructions
 
@@ -64,12 +65,22 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
 
 3. **Database Setup**: In your [Supabase project](https://supabase.com/dashboard) SQL Editor, copy, paste, and execute the contents of `migration/complete_setup.sql`
 
-4. **Start Services**:
+4. **Start Services** (choose one):
+
+   **Option A: Hybrid Development Mode (Recommended for Development)**
    ```bash
+   make dev
+   ```
+   This runs backend services in Docker and frontend locally with hot module replacement for instant updates.
+
+   **Option B: Full Docker Mode**
+   ```bash
+   make prod
+   # or
    docker-compose up --build -d
    ```
    
-   This starts the core microservices:
+   This starts all core microservices in Docker:
    - **Server**: Core API and business logic (Port: 8181)
    - **MCP Server**: Protocol interface for AI clients (Port: 8051)
    - **Agents (coming soon!)**: AI operations and streaming (Port: 8052)
@@ -81,6 +92,19 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
    - Open http://localhost:3737
    - Go to **Settings** → Select your LLM/embedding provider and set the API key (OpenAI is default)
    - Test by uploading a document or crawling a website
+
+### 🚀 Quick Command Reference
+
+| Command | Description |
+|---------|-------------|
+| `make dev` | Start hybrid dev environment (backend in Docker, frontend local) |
+| `make prod` | Start production environment (all in Docker) |
+| `make install` | Install all dependencies |
+| `make test` | Run all tests |
+| `make stop` | Stop all services |
+| `make logs` | View service logs |
+| `make status` | Check service status |
+| `make help` | Show all available commands |
 
 ## 🔄 Database Reset (Start Fresh if Needed)
 
@@ -107,6 +131,38 @@ If you need to completely reset your database and start fresh:
 The reset script safely removes all tables, functions, triggers, and policies with proper dependency handling.
 
 </details>
+
+## 🛠️ Installing Make
+
+Make is required for the development workflow. Installation varies by platform:
+
+### Windows
+```bash
+# Option 1: Using Chocolatey
+choco install make
+
+# Option 2: Using Scoop
+scoop install make
+
+# Option 3: Using WSL2
+wsl --install
+# Then in WSL: sudo apt-get install make
+```
+
+### macOS
+```bash
+# Make comes pre-installed on macOS
+# If needed: brew install make
+```
+
+### Linux
+```bash
+# Debian/Ubuntu
+sudo apt-get install make
+
+# RHEL/CentOS/Fedora
+sudo yum install make
+```
 
 ## ⚡ Quick Test
 
@@ -259,17 +315,99 @@ After changing hostname or ports:
 
 ## 🔧 Development
 
-For development with hot reload:
+### Quick Commands
 
 ```bash
-# Backend services (with auto-reload)
-docker-compose up archon-server archon-mcp archon-agents --build
+# Start hybrid development environment (recommended)
+make dev
 
-# Frontend (with hot reload) 
-cd archon-ui-main && npm run dev
+# View all available commands
+make help
 
-# Documentation (with hot reload)
-cd docs && npm start
+# Common development commands
+make install      # Install all dependencies
+make test         # Run all tests
+make lint         # Lint frontend and backend
+make logs         # View service logs
+make stop         # Stop all services
+make clean        # Clean up containers and volumes
+```
+
+### Development Modes
+
+#### Hybrid Mode (Recommended)
+Best for active development with instant frontend updates:
+```bash
+make dev
+# or
+make dev-hybrid
+```
+- Backend services run in Docker with hot reload
+- Frontend runs locally with HMR (Hot Module Replacement)
+- Instant UI updates without Docker rebuilds
+
+#### Full Docker Mode
+For testing production-like environment:
+```bash
+make dev-docker
+```
+- All services run in Docker
+- Slower frontend updates (requires rebuild)
+
+#### Manual Service Control
+Start individual services:
+```bash
+make backend      # Start backend services only
+make frontend     # Start frontend only
+```
+
+### Testing
+
+```bash
+# Run all tests
+make test
+
+# Frontend tests
+make test-frontend
+cd archon-ui-main && make test-coverage
+
+# Backend tests  
+make test-backend
+cd python && make test-coverage
+```
+
+### Code Quality
+
+```bash
+# Run all checks
+make pre-commit
+
+# Individual checks
+make lint-frontend
+make lint-backend
+make typecheck
+```
+
+### Service Management
+
+```bash
+# View service status
+make status
+
+# View logs
+make logs           # All services
+make logs-server    # Specific service
+make watch-backend  # Watch backend logs
+
+# Health check
+make health
+
+# Restart services
+make restart
+
+# Clean everything
+make clean         # Remove containers
+make deep-clean    # Also remove dependencies
 ```
 
 **Note**: The backend services are configured with `--reload` flag in their uvicorn commands and have source code mounted as volumes for automatic hot reloading when you make changes.
