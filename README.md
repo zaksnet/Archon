@@ -369,11 +369,12 @@ make test
 
 # Frontend tests
 make test-frontend
-cd archon-ui-main && make test-coverage
+cd archon-ui-main && npm run test:coverage
 
-# Backend tests  
+# Backend tests
 make test-backend
-cd python && make test-coverage
+# (Optional) run directly via uv
+cd python && uv run pytest
 ```
 
 ### Code Quality

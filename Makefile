@@ -44,11 +44,15 @@ install:
 check-frontend-deps:
 	@cd archon-ui-main && npm install --silent
 
+# Verify required env vars exist - using Node.js for cross-platform compatibility
+check-env:
+	@node -e "const fs=require('fs'); if(!fs.existsSync('.env')){console.error('ERROR: .env file not found! Create one from .env.example');process.exit(1);} const env=fs.readFileSync('.env','utf8'); const missing=[]; if(!env.includes('SUPABASE_URL=')){missing.push('SUPABASE_URL');} if(!env.includes('SUPABASE_SERVICE_KEY=')){missing.push('SUPABASE_SERVICE_KEY');} if(missing.length>0){console.error('ERROR: Missing required env vars: '+missing.join(', '));process.exit(1);} console.log('Environment OK: SUPABASE_URL and SUPABASE_SERVICE_KEY found.');"
+
 # Default dev target - hybrid mode
 dev: dev-hybrid
 
 # Hybrid development - backend in Docker, frontend local
-dev-hybrid: stop-prod check-frontend-deps
+dev-hybrid: stop-prod check-env check-frontend-deps
 	@echo "Starting hybrid development environment..."
 	@echo "Backend services in Docker, Frontend running locally"
 	@docker-compose -p archon-backend -f docker-compose.backend.yml up -d --build
