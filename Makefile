@@ -128,10 +128,18 @@ dev-local: check-env install
 # Stop local services
 stop-local:
 	@echo "Stopping local services..."
+	@echo "Stopping Python API server..."
 	@pkill -f "python -m src.server.main" || true
+	@echo "Stopping Vite dev server..."
 	@pkill -f "vite" || true
-	@lsof -ti:3737 | xargs kill -9 2>/dev/null || true
-	@lsof -ti:8181 | xargs kill -9 2>/dev/null || true
+	@echo "Gracefully stopping any remaining processes on local ports..."
+	@# First try graceful shutdown, then force kill only specific processes
+	@lsof -ti:3737 2>/dev/null | while read pid; do \
+		ps -p $$pid -o comm= 2>/dev/null | grep -E "(node|vite)" >/dev/null && kill $$pid 2>/dev/null || true; \
+	done || true
+	@lsof -ti:8181 2>/dev/null | while read pid; do \
+		ps -p $$pid -o comm= 2>/dev/null | grep -E "(python|uvicorn)" >/dev/null && kill $$pid 2>/dev/null || true; \
+	done || true
 	@echo "Local services stopped"
 
 # Production environment
