@@ -22,4 +22,4 @@ COPY . .
 EXPOSE 3737
 
 # Start Vite dev server (already configured with --port 3737 --host in package.json)
-CMD ["npm", "run", "dev"] 
+CMD ["npm", "run", "dev"]
