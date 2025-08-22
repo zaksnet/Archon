@@ -278,7 +278,7 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
     ],
     server: {
       host: '0.0.0.0', // Listen on all network interfaces with explicit IP
-      port: 5173, // Match the port expected in Docker
+      port: parseInt(process.env.ARCHON_UI_PORT || env.ARCHON_UI_PORT || '3737'), // Use configurable port
       strictPort: true, // Exit if port is in use
       proxy: {
         '/api': {

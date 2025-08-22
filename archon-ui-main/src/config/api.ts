@@ -21,7 +21,10 @@ export function getApiUrl(): string {
   const protocol = window.location.protocol;
   const host = window.location.hostname;
   // Try VITE_ prefixed env var first, then fallback to default
-  const port = import.meta.env.VITE_ARCHON_SERVER_PORT || '8181';
+  const port = import.meta.env.VITE_ARCHON_SERVER_PORT || (() => {
+    console.info('[Archon] Using default ARCHON_SERVER_PORT: 8181');
+    return '8181';
+  })();
   
   return `${protocol}//${host}:${port}`;
 }
