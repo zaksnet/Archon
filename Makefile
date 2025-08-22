@@ -174,7 +174,7 @@ test-coverage:
 # Stop all containers
 stop:
 	@echo "Stopping all containers..."
-	@docker-compose down || true
+	@docker-compose --profile backend --profile frontend --profile full down || true
 	@echo "All services stopped"
 
 # Clean everything (containers, volumes, node_modules)
