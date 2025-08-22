@@ -105,16 +105,16 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
 
 ### 🚀 Quick Command Reference
 
-| Command        | Description                                                      |
-| -------------- | ---------------------------------------------------------------- |
-| `make dev`     | Start hybrid dev environment (backend in Docker, frontend local) |
-| `make prod`    | Start production environment (all in Docker)                     |
-| `make install` | Install all dependencies                                         |
-| `make test`    | Run all tests                                                    |
-| `make stop`    | Stop all services                                                |
-| `make logs`    | View service logs                                                |
-| `make status`  | Check service status                                             |
-| `make help`    | Show all available commands                                      |
+| Command          | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
+| `make dev`       | Start hybrid dev (backend in Docker, frontend local) ⭐    |
+| `make dev-docker`| Everything in Docker                                      |
+| `make stop`      | Stop all services                                         |
+| `make test`      | Run all tests                                             |
+| `make lint`      | Run linters                                               |
+| `make install`   | Install dependencies                                      |
+| `make check`     | Check environment setup                                   |
+| `make clean`     | Remove containers and volumes (with confirmation)         |
 
 ## 🔄 Database Reset (Start Fresh if Needed)
 
@@ -337,114 +337,62 @@ After changing hostname or ports:
 
 ## 🔧 Development
 
-### Quick Commands
+### Quick Start
 
 ```bash
-# Start hybrid development environment (recommended for development)
-make dev-hybrid
+# Install dependencies
+make install
 
-# View all available commands
-make help
+# Start development (recommended)
+make dev        # Backend in Docker, frontend local with hot reload
 
-# Common development commands
-make install      # Install all dependencies
-make test         # Run all tests
-make lint-frontend # Lint frontend code
-make lint-backend  # Lint backend code
-make logs         # View service logs
-make stop         # Stop all services
-make clean        # Clean up containers and volumes
+# Alternative: Everything in Docker
+make dev-docker # All services in Docker
+
+# Stop everything
+make stop
 ```
 
 ### Development Modes
 
-#### Hybrid Mode (Recommended for development)
+#### Hybrid Mode (Recommended) - `make dev`
 
-Best for active development with instant local frontend updates:
-
-```bash
-make dev-hybrid
-```
-
-- Backend services run in Docker with hot reload
-- Frontend runs locally with HMR (Hot Module Replacement)
+Best for active development with instant frontend updates:
+- Backend services run in Docker (isolated, consistent)
+- Frontend runs locally with hot module replacement
 - Instant UI updates without Docker rebuilds
 
-**Security Note**: The frontend dev server uses `--host` flag to allow network access. This is useful for:
-
-- Testing on different devices on your network
-- Accessing the UI from Docker containers
-
-However, this exposes the dev server to your local network. In production or on untrusted networks, ensure proper firewall rules are in place.
-
-#### Full Docker Mode
+#### Full Docker Mode - `make dev-docker`
 
 For testing production-like environment:
+- All services run in Docker containers
+- Better for integration testing
+- Slower frontend updates
+
+### Testing & Code Quality
 
 ```bash
-make dev-docker
+# Run tests
+make test       # Run all tests
+
+# Run linters
+make lint       # Lint all code
+
+# Check environment
+make check      # Verify environment setup
+
+# Clean up
+make clean      # Remove containers and volumes (asks for confirmation)
 ```
 
-- All services run in Docker
-
-#### Manual Service Control
-
-Start individual services:
+### Viewing Logs
 
 ```bash
-make backend      # Start backend services only
-make frontend     # Start frontend only
-```
-
-### Testing
-
-```bash
-# Run all tests
-make test
-
-# Frontend tests
-make test-frontend
-cd archon-ui-main && npm run test:coverage
-
-# Backend tests
-make test-backend
-# (Optional) run directly via uv
-cd python && uv run pytest
-```
-
-### Code Quality
-
-```bash
-# Run all checks
-make pre-commit
-
-# Individual checks
-make lint-frontend
-make lint-backend
-make typecheck
-```
-
-### Service Management
-
-```bash
-# View service status
-make status
-
-# View logs
-make logs           # All services
-make watch-backend  # Watch backend logs
-make watch-mcp      # Watch MCP logs
-make watch-agents   # Watch agents logs
-
-# Health check
-make health
-
-# Restart services
-make restart
-
-# Clean everything
-make clean         # Remove containers
-make deep-clean    # Also remove dependencies
+# View logs using Docker Compose directly
+docker-compose logs -f              # All services
+docker-compose logs -f archon-server # API server
+docker-compose logs -f archon-mcp    # MCP server
+docker-compose logs -f archon-ui     # Frontend
 ```
 
 **Note**: The backend services are configured with `--reload` flag in their uvicorn commands and have source code mounted as volumes for automatic hot reloading when you make changes.

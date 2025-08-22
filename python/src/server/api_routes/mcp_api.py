@@ -63,50 +63,20 @@ class MCPServerManager:
         self._initialize_docker_client()
 
     def _resolve_container(self):
-        """Dynamically resolve the MCP container using multiple strategies."""
+        """Simple container resolution - just use fixed name."""
         if not self.docker_client:
             return None
-
-        import os
-
-        # Strategy 1: Try environment variable
-        env_name = os.getenv("ARCHON_MCP_CONTAINER_NAME")
-        if env_name:
-            try:
-                container = self.docker_client.containers.get(env_name)
-                self.container_name = env_name
-                mcp_logger.info(f"Found MCP container via env var: {env_name}")
-                return container
-            except NotFound:
-                mcp_logger.warning(f"Container specified in env var not found: {env_name}")
-
-        # Strategy 2: Try finding by label
+        
         try:
-            containers = self.docker_client.containers.list(
-                all=True,
-                filters={"label": "archon.service=mcp"}
-            )
-            if containers:
-                container = containers[0]
-                self.container_name = container.name
-                mcp_logger.info(f"Found MCP container via label: {self.container_name}")
-                return container
-        except Exception as e:
-            mcp_logger.debug(f"Label search failed: {e}")
-
-        # Strategy 3: Try known container names (backward compatibility)
-        fallback_names = ["archon-mcp", "Archon-MCP"]
-        for name in fallback_names:
-            try:
-                container = self.docker_client.containers.get(name)
-                self.container_name = name
-                mcp_logger.info(f"Found MCP container via fallback name: {name}")
-                return container
-            except NotFound:
-                continue
-
-        mcp_logger.warning("Could not find MCP container using any strategy")
-        return None
+            # Simple: Just look for the fixed container name
+            container = self.docker_client.containers.get("archon-mcp")
+            self.container_name = "archon-mcp"
+            mcp_logger.info("Found MCP container")
+            return container
+        except NotFound:
+            mcp_logger.warning("MCP container not found - is it running?")
+            self.container_name = "archon-mcp"
+            return None
 
     def _initialize_docker_client(self):
         """Initialize Docker client and get container reference."""

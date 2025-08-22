@@ -3,78 +3,71 @@
 const fs = require('fs');
 const path = require('path');
 
-// Check if .env file exists
-const envPath = path.join(process.cwd(), '.env');
-if (!fs.existsSync(envPath)) {
-  console.error('ERROR: .env file not found! Create one from .env.example');
+// Secure path resolution
+const projectRoot = process.cwd();
+const envPath = path.resolve(projectRoot, '.env');
+
+// Security: Validate path is within project
+if (!envPath.startsWith(projectRoot)) {
+  console.error('Security error: Invalid .env path');
   process.exit(1);
 }
 
-// Read and parse .env file
+// Check if .env exists
+if (!fs.existsSync(envPath)) {
+  console.error('ERROR: .env file not found!');
+  console.error('Copy .env.example to .env and add your credentials:');
+  console.error('  cp .env.example .env');
+  process.exit(1);
+}
+
+// Parse .env file
 const envContent = fs.readFileSync(envPath, 'utf8');
-const lines = envContent.split('\n');
 const envVars = {};
 
-// Parse .env properly, ignoring comments and empty lines
-lines.forEach(line => {
+envContent.split('\n').forEach(line => {
   const trimmed = line.trim();
-  
-  // Skip empty lines and comments
   if (!trimmed || trimmed.startsWith('#')) return;
   
-  // Find the first = sign (values might contain = signs)
-  const equalIndex = trimmed.indexOf('=');
-  if (equalIndex === -1) return;
-  
-  const key = trimmed.substring(0, equalIndex).trim();
-  const value = trimmed.substring(equalIndex + 1).trim();
-  
-  // Remove surrounding quotes if present
-  const unquotedValue = value.replace(/^["']|["']$/g, '');
-  
+  const [key, ...valueParts] = trimmed.split('=');
   if (key) {
-    envVars[key] = unquotedValue;
+    const value = valueParts.join('=').trim().replace(/^["']|["']$/g, '');
+    envVars[key.trim()] = value;
   }
 });
 
-// Check required variables
+// Only check ESSENTIAL variables
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
-const missing = [];
-const empty = [];
+const errors = [];
 
 required.forEach(varName => {
-  if (!(varName in envVars)) {
-    missing.push(varName);
-  } else if (envVars[varName] === '') {
-    empty.push(varName);
+  if (!envVars[varName] || envVars[varName] === '') {
+    errors.push(`Missing: ${varName}`);
   }
 });
 
-// Report errors
-if (missing.length > 0) {
-  console.error('ERROR: Missing required env vars: ' + missing.join(', '));
-  console.error('Please add these variables to your .env file');
+if (errors.length > 0) {
+  console.error('ERROR: Required environment variables missing:');
+  errors.forEach(err => console.error(`  - ${err}`));
+  console.error('\nPlease add these to your .env file');
   process.exit(1);
 }
 
-if (empty.length > 0) {
-  console.error('ERROR: Empty values for env vars: ' + empty.join(', '));
-  console.error('Please provide values for these variables in your .env file');
-  process.exit(1);
-}
-
-// Validate URL format for SUPABASE_URL
+// Validate URL format
 try {
   new URL(envVars['SUPABASE_URL']);
 } catch (e) {
-  console.error('ERROR: SUPABASE_URL is not a valid URL: ' + envVars['SUPABASE_URL']);
+  console.error('ERROR: SUPABASE_URL is not a valid URL');
+  console.error(`  Found: ${envVars['SUPABASE_URL']}`);
+  console.error('  Expected format: https://your-project.supabase.co');
   process.exit(1);
 }
 
-// Basic validation for service key (should be non-trivial)
+// Basic validation for service key
 if (envVars['SUPABASE_SERVICE_KEY'].length < 10) {
   console.error('ERROR: SUPABASE_SERVICE_KEY appears to be invalid (too short)');
+  console.error('  Please check your Supabase project settings');
   process.exit(1);
 }
 
-console.log('Environment OK: SUPABASE_URL and SUPABASE_SERVICE_KEY found and validated.');
+console.log('✓ Environment configured correctly');
