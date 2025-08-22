@@ -342,7 +342,8 @@ make help
 # Common development commands
 make install      # Install all dependencies
 make test         # Run all tests
-make lint         # Lint frontend and backend
+make lint-frontend # Lint frontend code
+make lint-backend  # Lint backend code
 make logs         # View service logs
 make stop         # Stop all services
 make clean        # Clean up containers and volumes
@@ -360,6 +361,12 @@ make dev-hybrid
 - Backend services run in Docker with hot reload
 - Frontend runs locally with HMR (Hot Module Replacement)
 - Instant UI updates without Docker rebuilds
+
+**Security Note**: The frontend dev server uses `--host` flag to allow network access. This is useful for:
+- Testing on different devices on your network
+- Accessing the UI from Docker containers
+
+However, this exposes the dev server to your local network. In production or on untrusted networks, ensure proper firewall rules are in place.
 
 #### Full Docker Mode
 For testing production-like environment:
@@ -412,8 +419,9 @@ make status
 
 # View logs
 make logs           # All services
-make logs-server    # Specific service
 make watch-backend  # Watch backend logs
+make watch-mcp      # Watch MCP logs
+make watch-agents   # Watch agents logs
 
 # Health check
 make health
@@ -427,6 +435,83 @@ make deep-clean    # Also remove dependencies
 ```
 
 **Note**: The backend services are configured with `--reload` flag in their uvicorn commands and have source code mounted as volumes for automatic hot reloading when you make changes.
+
+## 🔍 Troubleshooting
+
+### Common Issues and Solutions
+
+#### Port Conflicts
+If you see "Port already in use" errors:
+```bash
+# Check what's using a port (e.g., 3737)
+lsof -i :3737
+
+# Stop all containers and local services
+make stop
+make stop-local
+
+# Or kill specific process
+kill <PID>
+```
+
+#### Docker Permission Issues (Linux)
+If you encounter permission errors with Docker:
+```bash
+# Add your user to the docker group
+sudo usermod -aG docker $USER
+
+# Log out and back in, or run
+newgrp docker
+```
+
+#### Windows-Specific Issues
+- **Make not found**: Install Make via Chocolatey, Scoop, or WSL2 (see [Installing Make](#installing-make))
+- **Line ending issues**: Configure Git to use LF endings:
+  ```bash
+  git config --global core.autocrlf false
+  ```
+
+#### Environment Variables Not Loading
+```bash
+# Verify .env file exists and has required variables
+make doctor
+
+# Check specific variables
+grep SUPABASE_URL .env
+grep SUPABASE_SERVICE_KEY .env
+```
+
+#### Frontend Can't Connect to Backend
+- Check backend is running: `curl http://localhost:8181/health`
+- Verify port configuration in `.env`
+- For custom ports, ensure both `ARCHON_SERVER_PORT` and `VITE_ARCHON_SERVER_PORT` are set
+
+#### Docker Compose Hangs
+If `docker-compose` commands hang:
+```bash
+# Reset Docker Compose
+docker-compose down --remove-orphans
+docker system prune -f
+
+# Restart Docker Desktop (if applicable)
+```
+
+#### Hot Reload Not Working
+- **Frontend**: Ensure you're running in hybrid mode (`make dev-hybrid`) for best HMR experience
+- **Backend**: Check that volumes are mounted correctly in `docker-compose.yml`
+- **File permissions**: On some systems, mounted volumes may have permission issues
+
+#### Check Your Setup
+Run the doctor command to validate your environment:
+```bash
+make doctor
+```
+
+This will check:
+- Required tools installation
+- Environment variables
+- Port availability
+- Docker daemon status
 
 ## 📈 Progress
 
