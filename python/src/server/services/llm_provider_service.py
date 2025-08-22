@@ -72,7 +72,7 @@ async def get_llm_client(provider: str | None = None, use_embedding_provider: bo
             else:
                 logger.debug("Using cached rag_strategy settings")
 
-            base_url = credential_service._get_provider_base_url(provider, rag_settings)
+            base_url = credential_service._get_provider_base_url(provider, rag_settings, "LLM_BASE_URL")
         else:
             # Get configured provider from database
             service_type = "embedding" if use_embedding_provider else "llm"

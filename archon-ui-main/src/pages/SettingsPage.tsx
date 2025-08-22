@@ -22,7 +22,9 @@ export const SettingsPage = () => {
     USE_HYBRID_SEARCH: true,
     USE_AGENTIC_RAG: true,
     USE_RERANKING: true,
-    MODEL_CHOICE: 'gpt-4.1-nano'
+    MODEL_CHOICE: 'gpt-4.1-nano',
+    LLM_PROVIDER: 'openai',
+    EMBEDDING_PROVIDER: 'openai'
   });
   const [codeExtractionSettings, setCodeExtractionSettings] = useState<CodeExtractionSettingsType>({
     MIN_CODE_BLOCK_LENGTH: 250,

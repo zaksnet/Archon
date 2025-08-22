@@ -17,6 +17,8 @@ interface RAGSettingsProps {
     USE_RERANKING: boolean;
     LLM_PROVIDER?: string;
     LLM_BASE_URL?: string;
+    EMBEDDING_PROVIDER?: string;
+    EMBEDDING_BASE_URL?: string;
     EMBEDDING_MODEL?: string;
     // Crawling Performance Settings
     CRAWL_BATCH_SIZE?: number;
@@ -53,90 +55,134 @@ export const RAGSettings = ({
           knowledge retrieval.
         </p>
         
-        {/* Provider Selection Row */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div>
-            <Select
-              label="LLM Provider"
-              value={ragSettings.LLM_PROVIDER || 'openai'}
-              onChange={e => setRagSettings({
-                ...ragSettings,
-                LLM_PROVIDER: e.target.value
-              })}
-              accentColor="green"
-              options={[
-                { value: 'openai', label: 'OpenAI' },
-                { value: 'google', label: 'Google Gemini' },
-                { value: 'ollama', label: 'Ollama (Coming Soon)' },
-              ]}
-            />
-          </div>
-          {ragSettings.LLM_PROVIDER === 'ollama' && (
+        {/* Chat LLM Provider Section */}
+        <div className="mb-6 p-4 border border-blue-500/20 rounded-lg bg-blue-500/5">
+          <h3 className="font-semibold text-gray-800 dark:text-white mb-3 flex items-center">
+            💬 Chat LLM Provider
+            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 font-normal">(for agent conversations)</span>
+          </h3>
+          <div className="grid grid-cols-3 gap-4">
             <div>
-              <Input
-                label="Ollama Base URL"
-                value={ragSettings.LLM_BASE_URL || 'http://localhost:11434/v1'}
+              <Select
+                label="Chat Provider"
+                value={ragSettings.LLM_PROVIDER || 'openai'}
                 onChange={e => setRagSettings({
                   ...ragSettings,
-                  LLM_BASE_URL: e.target.value
+                  LLM_PROVIDER: e.target.value
                 })}
-                placeholder="http://localhost:11434/v1"
-                accentColor="green"
+                accentColor="blue"
+                options={[
+                  { value: 'openai', label: 'OpenAI' },
+                  { value: 'google', label: 'Google Gemini' },
+                  { value: 'ollama', label: 'Ollama' },
+                ]}
               />
             </div>
-          )}
-          <div className="flex items-end">
-            <Button 
-              variant="outline" 
-              accentColor="green" 
-              icon={saving ? <Loader className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-              className="w-full whitespace-nowrap"
-              size="md"
-              onClick={async () => {
-                try {
-                  setSaving(true);
-                  await credentialsService.updateRagSettings(ragSettings);
-                  showToast('RAG settings saved successfully!', 'success');
-                } catch (err) {
-                  console.error('Failed to save RAG settings:', err);
-                  showToast('Failed to save settings', 'error');
-                } finally {
-                  setSaving(false);
-                }
-              }}
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : 'Save Settings'}
-            </Button>
+            {ragSettings.LLM_PROVIDER === 'ollama' && (
+              <div>
+                <Input
+                  label="Chat Base URL"
+                  value={ragSettings.LLM_BASE_URL || 'http://localhost:11434/v1'}
+                  onChange={e => setRagSettings({
+                    ...ragSettings,
+                    LLM_BASE_URL: e.target.value
+                  })}
+                  placeholder="http://localhost:11434/v1"
+                  accentColor="blue"
+                />
+              </div>
+            )}
+            <div>
+              <Input 
+                label="Chat Model" 
+                value={ragSettings.MODEL_CHOICE} 
+                onChange={e => setRagSettings({
+                  ...ragSettings,
+                  MODEL_CHOICE: e.target.value
+                })} 
+                placeholder={getModelPlaceholder(ragSettings.LLM_PROVIDER || 'openai')}
+                accentColor="blue" 
+              />
+            </div>
           </div>
         </div>
 
-        {/* Model Settings Row */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <Input 
-              label="Chat Model" 
-              value={ragSettings.MODEL_CHOICE} 
-              onChange={e => setRagSettings({
-                ...ragSettings,
-                MODEL_CHOICE: e.target.value
-              })} 
-              placeholder={getModelPlaceholder(ragSettings.LLM_PROVIDER || 'openai')}
-              accentColor="green" 
-            />
+        {/* Embedding Provider Section */}
+        <div className="mb-6 p-4 border border-purple-500/20 rounded-lg bg-purple-500/5">
+          <h3 className="font-semibold text-gray-800 dark:text-white mb-3 flex items-center">
+            🔍 Embedding Provider
+            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 font-normal">(for vector search)</span>
+          </h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Select
+                label="Embedding Provider"
+                value={ragSettings.EMBEDDING_PROVIDER || ragSettings.LLM_PROVIDER || 'openai'}
+                onChange={e => setRagSettings({
+                  ...ragSettings,
+                  EMBEDDING_PROVIDER: e.target.value
+                })}
+                accentColor="purple"
+                options={[
+                  { value: 'openai', label: 'OpenAI' },
+                  { value: 'google', label: 'Google Gemini' },
+                  { value: 'ollama', label: 'Ollama' },
+                ]}
+              />
+            </div>
+            {ragSettings.EMBEDDING_PROVIDER === 'ollama' && (
+              <div>
+                <Input
+                  label="Embedding Base URL"
+                  value={ragSettings.EMBEDDING_BASE_URL || 'http://localhost:11434/v1'}
+                  onChange={e => setRagSettings({
+                    ...ragSettings,
+                    EMBEDDING_BASE_URL: e.target.value
+                  })}
+                  placeholder="http://localhost:11434/v1"
+                  accentColor="purple"
+                />
+              </div>
+            )}
+            <div>
+              <Input
+                label="Embedding Model"
+                value={ragSettings.EMBEDDING_MODEL || ''}
+                onChange={e => setRagSettings({
+                  ...ragSettings,
+                  EMBEDDING_MODEL: e.target.value
+                })}
+                placeholder={getEmbeddingPlaceholder(ragSettings.EMBEDDING_PROVIDER || ragSettings.LLM_PROVIDER || 'openai')}
+                accentColor="purple"
+              />
+            </div>
           </div>
-          <div>
-            <Input
-              label="Embedding Model"
-              value={ragSettings.EMBEDDING_MODEL || ''}
-              onChange={e => setRagSettings({
-                ...ragSettings,
-                EMBEDDING_MODEL: e.target.value
-              })}
-              placeholder={getEmbeddingPlaceholder(ragSettings.LLM_PROVIDER || 'openai')}
-              accentColor="green"
-            />
-          </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="mb-6 flex justify-center">
+          <Button 
+            variant="outline" 
+            accentColor="green" 
+            icon={saving ? <Loader className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+            className="px-8 whitespace-nowrap"
+            size="md"
+            onClick={async () => {
+              try {
+                setSaving(true);
+                await credentialsService.updateRagSettings(ragSettings);
+                showToast('RAG settings saved successfully!', 'success');
+              } catch (err) {
+                console.error('Failed to save RAG settings:', err);
+                showToast('Failed to save settings', 'error');
+              } finally {
+                setSaving(false);
+              }
+            }}
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Save Provider Settings'}
+          </Button>
         </div>
         
         {/* Second row: Contextual Embeddings, Max Workers, and description */}

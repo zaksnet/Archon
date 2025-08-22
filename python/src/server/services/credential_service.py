@@ -408,14 +408,19 @@ class CredentialService:
             # Get RAG strategy settings (where UI saves provider selection)
             rag_settings = await self.get_credentials_by_category("rag_strategy")
 
-            # Get the selected provider
-            provider = rag_settings.get("LLM_PROVIDER", "openai")
+            # Get the selected provider based on service type
+            if service_type == "embedding":
+                provider = rag_settings.get("EMBEDDING_PROVIDER", rag_settings.get("LLM_PROVIDER", "openai"))
+                base_url_key = "EMBEDDING_BASE_URL"
+            else:
+                provider = rag_settings.get("LLM_PROVIDER", "openai")
+                base_url_key = "LLM_BASE_URL"
 
             # Get API key for this provider
             api_key = await self._get_provider_api_key(provider)
 
             # Get base URL if needed
-            base_url = self._get_provider_base_url(provider, rag_settings)
+            base_url = self._get_provider_base_url(provider, rag_settings, base_url_key)
 
             # Get models
             chat_model = rag_settings.get("MODEL_CHOICE", "")
@@ -454,10 +459,10 @@ class CredentialService:
             return await self.get_credential(key_name)
         return "ollama" if provider == "ollama" else None
 
-    def _get_provider_base_url(self, provider: str, rag_settings: dict) -> str | None:
+    def _get_provider_base_url(self, provider: str, rag_settings: dict, base_url_key: str = "LLM_BASE_URL") -> str | None:
         """Get base URL for provider."""
         if provider == "ollama":
-            return rag_settings.get("LLM_BASE_URL", "http://localhost:11434/v1")
+            return rag_settings.get(base_url_key, "http://localhost:11434/v1")
         elif provider == "google":
             return "https://generativelanguage.googleapis.com/v1beta/openai/"
         return None  # Use default for OpenAI
