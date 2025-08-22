@@ -360,7 +360,7 @@ make clean        # Clean up containers and volumes
 
 #### Hybrid Mode (Recommended for development)
 
-Best for active development with instant frontend updates:
+Best for active development with instant local frontend updates:
 
 ```bash
 make dev-hybrid

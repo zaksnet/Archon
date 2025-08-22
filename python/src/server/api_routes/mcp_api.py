@@ -49,7 +49,7 @@ class MCPServerManager:
     """Manages the MCP Docker container lifecycle."""
 
     def __init__(self):
-        self.container_name = "Archon-MCP"  # Container name from docker-compose.yml
+        self.container_name = None  # Will be resolved dynamically
         self.docker_client = None
         self.container = None
         self.status: str = "stopped"
@@ -62,16 +62,59 @@ class MCPServerManager:
         self._min_operation_interval = 2.0  # Minimum 2 seconds between operations
         self._initialize_docker_client()
 
+    def _resolve_container(self):
+        """Dynamically resolve the MCP container using multiple strategies."""
+        if not self.docker_client:
+            return None
+
+        import os
+
+        # Strategy 1: Try environment variable
+        env_name = os.getenv("ARCHON_MCP_CONTAINER_NAME")
+        if env_name:
+            try:
+                container = self.docker_client.containers.get(env_name)
+                self.container_name = env_name
+                mcp_logger.info(f"Found MCP container via env var: {env_name}")
+                return container
+            except NotFound:
+                mcp_logger.warning(f"Container specified in env var not found: {env_name}")
+
+        # Strategy 2: Try finding by label
+        try:
+            containers = self.docker_client.containers.list(
+                all=True,
+                filters={"label": "archon.service=mcp"}
+            )
+            if containers:
+                container = containers[0]
+                self.container_name = container.name
+                mcp_logger.info(f"Found MCP container via label: {self.container_name}")
+                return container
+        except Exception as e:
+            mcp_logger.debug(f"Label search failed: {e}")
+
+        # Strategy 3: Try known container names (backward compatibility)
+        fallback_names = ["archon-mcp", "Archon-MCP"]
+        for name in fallback_names:
+            try:
+                container = self.docker_client.containers.get(name)
+                self.container_name = name
+                mcp_logger.info(f"Found MCP container via fallback name: {name}")
+                return container
+            except NotFound:
+                continue
+
+        mcp_logger.warning("Could not find MCP container using any strategy")
+        return None
+
     def _initialize_docker_client(self):
         """Initialize Docker client and get container reference."""
         try:
             self.docker_client = docker.from_env()
-            try:
-                self.container = self.docker_client.containers.get(self.container_name)
-                mcp_logger.info(f"Found Docker container: {self.container_name}")
-            except NotFound:
-                mcp_logger.warning(f"Docker container {self.container_name} not found")
-                self.container = None
+            self.container = self._resolve_container()
+            if not self.container:
+                mcp_logger.warning("MCP container not found during initialization")
         except Exception as e:
             mcp_logger.error(f"Failed to initialize Docker client: {str(e)}")
             self.docker_client = None
@@ -85,10 +128,17 @@ class MCPServerManager:
             if self.container:
                 self.container.reload()  # Refresh container info
             else:
-                self.container = self.docker_client.containers.get(self.container_name)
+                # Try to resolve container again if we don't have it
+                self.container = self._resolve_container()
+                if not self.container:
+                    return "not_found"
 
             return self.container.status
         except NotFound:
+            # Try to resolve again in case container was recreated
+            self.container = self._resolve_container()
+            if self.container:
+                return self.container.status
             return "not_found"
         except Exception as e:
             mcp_logger.error(f"Error getting container status: {str(e)}")
