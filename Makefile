@@ -2,7 +2,7 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -ec
 
-.PHONY: help dev dev-docker stop test lint clean install check
+.PHONY: help dev dev-docker stop test test-fe test-be lint lint-fe lint-be clean install check
 
 help:
 	@echo "Archon Development Commands"
@@ -10,8 +10,12 @@ help:
 	@echo "  make dev        - Backend in Docker, frontend local (recommended)"
 	@echo "  make dev-docker - Everything in Docker"
 	@echo "  make stop       - Stop all services"
-	@echo "  make test       - Run tests"
-	@echo "  make lint       - Run linters"
+	@echo "  make test       - Run all tests"
+	@echo "  make test-fe    - Run frontend tests only"
+	@echo "  make test-be    - Run backend tests only"
+	@echo "  make lint       - Run all linters"
+	@echo "  make lint-fe    - Run frontend linter only"
+	@echo "  make lint-be    - Run backend linter only"
 	@echo "  make clean      - Remove containers and volumes"
 	@echo "  make install    - Install dependencies"
 	@echo "  make check      - Check environment setup"
@@ -54,17 +58,29 @@ stop:
 	@docker-compose --profile backend --profile frontend --profile full down
 	@echo "✓ Services stopped"
 
-# Run tests
-test:
+# Run all tests
+test: test-fe test-be
+
+# Run frontend tests
+test-fe:
 	@echo "Running frontend tests..."
 	@cd archon-ui-main && npm test
+
+# Run backend tests
+test-be:
 	@echo "Running backend tests..."
 	@cd python && uv run pytest
 
-# Run linters
-lint:
+# Run all linters
+lint: lint-fe lint-be
+
+# Run frontend linter
+lint-fe:
 	@echo "Linting frontend..."
 	@cd archon-ui-main && npm run lint
+
+# Run backend linter
+lint-be:
 	@echo "Linting backend..."
 	@cd python && uv run ruff check --fix
 

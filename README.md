@@ -74,12 +74,12 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
 
 4. **Start Services** (choose one):
 
-   **Option A: Full Docker Mode (Recommended for Normal Archon Usage)**
+   **Full Docker Mode (Recommended for Normal Archon Usage)**
 
    ```bash
-   make prod
-   # or
    docker-compose --profile full up --build -d
+   # or
+   make dev-docker
    ```
 
    This starts all core microservices in Docker:
@@ -90,14 +90,6 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
 
    Ports are configurable in your .env as well!
 
-   **Option B: Hybrid Development Mode (Recommended for Development)**
-
-   ```bash
-   make dev
-   ```
-
-   This runs backend services in Docker and frontend locally with hot module replacement for instant updates.
-
 5. **Configure API Keys**:
    - Open http://localhost:3737
    - Go to **Settings** → Select your LLM/embedding provider and set the API key (OpenAI is default)
@@ -105,16 +97,16 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
 
 ### 🚀 Quick Command Reference
 
-| Command          | Description                                                |
-| ---------------- | ---------------------------------------------------------- |
-| `make dev`       | Start hybrid dev (backend in Docker, frontend local) ⭐    |
-| `make dev-docker`| Everything in Docker                                      |
-| `make stop`      | Stop all services                                         |
-| `make test`      | Run all tests                                             |
-| `make lint`      | Run linters                                               |
-| `make install`   | Install dependencies                                      |
-| `make check`     | Check environment setup                                   |
-| `make clean`     | Remove containers and volumes (with confirmation)         |
+| Command           | Description                                             |
+| ----------------- | ------------------------------------------------------- |
+| `make dev`        | Start hybrid dev (backend in Docker, frontend local) ⭐ |
+| `make dev-docker` | Everything in Docker                                    |
+| `make stop`       | Stop all services                                       |
+| `make test`       | Run all tests                                           |
+| `make lint`       | Run linters                                             |
+| `make install`    | Install dependencies                                    |
+| `make check`      | Check environment setup                                 |
+| `make clean`      | Remove containers and volumes (with confirmation)       |
 
 ## 🔄 Database Reset (Start Fresh if Needed)
 
@@ -283,11 +275,11 @@ Archon uses true microservices architecture with clear separation of concerns:
 
 By default, Archon services run on the following ports:
 
-- **Archon-UI**: 3737
-- **Archon-Server**: 8181
-- **Archon-MCP**: 8051
-- **Archon-Agents**: 8052
-- **Archon-Docs**: 3838 (optional)
+- **archon-ui**: 3737
+- **archon-server**: 8181
+- **archon-mcp**: 8051
+- **archon-agents**: 8052
+- **archon-docs**: 3838 (optional)
 
 ### Changing Ports
 
@@ -349,7 +341,7 @@ make dev        # Backend in Docker, frontend local with hot reload
 # Alternative: Everything in Docker
 make dev-docker # All services in Docker
 
-# Stop everything
+# Stop everything (local FE needs to be stopped manually)
 make stop
 ```
 
@@ -358,13 +350,15 @@ make stop
 #### Hybrid Mode (Recommended) - `make dev`
 
 Best for active development with instant frontend updates:
+
 - Backend services run in Docker (isolated, consistent)
 - Frontend runs locally with hot module replacement
 - Instant UI updates without Docker rebuilds
 
 #### Full Docker Mode - `make dev-docker`
 
-For testing production-like environment:
+For all services in Docker environment:
+
 - All services run in Docker containers
 - Better for integration testing
 - Slower frontend updates
@@ -411,10 +405,8 @@ lsof -i :3737
 
 # Stop all containers and local services
 make stop
-make stop-local
 
-# Or kill specific process
-kill <PID>
+# Change the port in .env
 ```
 
 #### Docker Permission Issues (Linux)
@@ -437,17 +429,6 @@ newgrp docker
   git config --global core.autocrlf false
   ```
 
-#### Environment Variables Not Loading
-
-```bash
-# Verify .env file exists and has required variables
-make doctor
-
-# Check specific variables
-grep SUPABASE_URL .env
-grep SUPABASE_SERVICE_KEY .env
-```
-
 #### Frontend Can't Connect to Backend
 
 - Check backend is running: `curl http://localhost:8181/health`
@@ -468,24 +449,9 @@ docker system prune -f
 
 #### Hot Reload Not Working
 
-- **Frontend**: Ensure you're running in hybrid mode (`make dev-hybrid`) for best HMR experience
+- **Frontend**: Ensure you're running in hybrid mode (`make dev`) for best HMR experience
 - **Backend**: Check that volumes are mounted correctly in `docker-compose.yml`
 - **File permissions**: On some systems, mounted volumes may have permission issues
-
-#### Check Your Setup
-
-Run the doctor command to validate your environment:
-
-```bash
-make doctor
-```
-
-This will check:
-
-- Required tools installation
-- Environment variables
-- Port availability
-- Docker daemon status
 
 ## 📈 Progress
 
