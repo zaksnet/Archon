@@ -43,6 +43,7 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
 ### Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [Node.js 18+](https://nodejs.org/) (for hybrid development mode)
 - [Supabase](https://supabase.com/) account (free tier or local Supabase both work)
 - [OpenAI API key](https://platform.openai.com/api-keys) (Gemini and Ollama are supported too!)
 - [Make](https://www.gnu.org/software/make/) (see [Installing Make](#installing-make) below)
@@ -73,19 +74,14 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
 
 4. **Start Services** (choose one):
 
-   **Option A: Hybrid Development Mode (Recommended for Development)**
-   ```bash
-   make dev
-   ```
-   This runs backend services in Docker and frontend locally with hot module replacement for instant updates.
+   **Option A: Full Docker Mode (Recommended for Normal Archon Usage)**
 
-   **Option B: Full Docker Mode**
    ```bash
    make prod
    # or
-   docker-compose up --build -d
+   docker-compose --profile full up --build -d
    ```
-   
+
    This starts all core microservices in Docker:
    - **Server**: Core API and business logic (Port: 8181)
    - **MCP Server**: Protocol interface for AI clients (Port: 8051)
@@ -94,6 +90,14 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
 
    Ports are configurable in your .env as well!
 
+   **Option B: Hybrid Development Mode (Recommended for Development)**
+
+   ```bash
+   make dev
+   ```
+
+   This runs backend services in Docker and frontend locally with hot module replacement for instant updates.
+
 5. **Configure API Keys**:
    - Open http://localhost:3737
    - Go to **Settings** → Select your LLM/embedding provider and set the API key (OpenAI is default)
@@ -101,16 +105,16 @@ This new vision for Archon replaces the old one (the agenteer). Archon used to b
 
 ### 🚀 Quick Command Reference
 
-| Command | Description |
-|---------|-------------|
-| `make dev` | Start hybrid dev environment (backend in Docker, frontend local) |
-| `make prod` | Start production environment (all in Docker) |
-| `make install` | Install all dependencies |
-| `make test` | Run all tests |
-| `make stop` | Stop all services |
-| `make logs` | View service logs |
-| `make status` | Check service status |
-| `make help` | Show all available commands |
+| Command        | Description                                                      |
+| -------------- | ---------------------------------------------------------------- |
+| `make dev`     | Start hybrid dev environment (backend in Docker, frontend local) |
+| `make prod`    | Start production environment (all in Docker)                     |
+| `make install` | Install all dependencies                                         |
+| `make test`    | Run all tests                                                    |
+| `make stop`    | Stop all services                                                |
+| `make logs`    | View service logs                                                |
+| `make status`  | Check service status                                             |
+| `make help`    | Show all available commands                                      |
 
 ## 🔄 Database Reset (Start Fresh if Needed)
 
@@ -128,7 +132,7 @@ If you need to completely reset your database and start fresh:
 3. **Restart Services**:
 
    ```bash
-   docker-compose up -d
+   docker-compose --profile full up -d
    ```
 
 4. **Reconfigure**:
@@ -144,6 +148,7 @@ The reset script safely removes all tables, functions, triggers, and policies wi
 Make is required for the development workflow. Installation varies by platform:
 
 ### Windows
+
 ```bash
 # Option 1: Using Chocolatey
 choco install make
@@ -157,12 +162,14 @@ wsl --install
 ```
 
 ### macOS
+
 ```bash
 # Make comes pre-installed on macOS
 # If needed: brew install make
 ```
 
 ### Linux
+
 ```bash
 # Debian/Ubuntu
 sudo apt-get install make
@@ -324,7 +331,7 @@ This is useful when:
 
 After changing hostname or ports:
 
-1. Restart Docker containers: `docker-compose down && docker-compose up -d`
+1. Restart Docker containers: `docker-compose down && docker-compose --profile full up -d`
 2. Access the UI at: `http://${HOST}:${ARCHON_UI_PORT}`
 3. Update your AI client configuration with the new hostname and MCP port
 
@@ -333,8 +340,8 @@ After changing hostname or ports:
 ### Quick Commands
 
 ```bash
-# Start hybrid development environment (recommended)
-make dev
+# Start hybrid development environment (recommended for development)
+make dev-hybrid
 
 # View all available commands
 make help
@@ -351,33 +358,39 @@ make clean        # Clean up containers and volumes
 
 ### Development Modes
 
-#### Hybrid Mode (Recommended)
+#### Hybrid Mode (Recommended for development)
+
 Best for active development with instant frontend updates:
+
 ```bash
-make dev
-# or
 make dev-hybrid
 ```
+
 - Backend services run in Docker with hot reload
 - Frontend runs locally with HMR (Hot Module Replacement)
 - Instant UI updates without Docker rebuilds
 
 **Security Note**: The frontend dev server uses `--host` flag to allow network access. This is useful for:
+
 - Testing on different devices on your network
 - Accessing the UI from Docker containers
 
 However, this exposes the dev server to your local network. In production or on untrusted networks, ensure proper firewall rules are in place.
 
 #### Full Docker Mode
+
 For testing production-like environment:
+
 ```bash
 make dev-docker
 ```
+
 - All services run in Docker
-- Slower frontend updates (requires rebuild)
 
 #### Manual Service Control
+
 Start individual services:
+
 ```bash
 make backend      # Start backend services only
 make frontend     # Start frontend only
@@ -441,7 +454,9 @@ make deep-clean    # Also remove dependencies
 ### Common Issues and Solutions
 
 #### Port Conflicts
+
 If you see "Port already in use" errors:
+
 ```bash
 # Check what's using a port (e.g., 3737)
 lsof -i :3737
@@ -455,7 +470,9 @@ kill <PID>
 ```
 
 #### Docker Permission Issues (Linux)
+
 If you encounter permission errors with Docker:
+
 ```bash
 # Add your user to the docker group
 sudo usermod -aG docker $USER
@@ -465,6 +482,7 @@ newgrp docker
 ```
 
 #### Windows-Specific Issues
+
 - **Make not found**: Install Make via Chocolatey, Scoop, or WSL2 (see [Installing Make](#installing-make))
 - **Line ending issues**: Configure Git to use LF endings:
   ```bash
@@ -472,6 +490,7 @@ newgrp docker
   ```
 
 #### Environment Variables Not Loading
+
 ```bash
 # Verify .env file exists and has required variables
 make doctor
@@ -482,12 +501,15 @@ grep SUPABASE_SERVICE_KEY .env
 ```
 
 #### Frontend Can't Connect to Backend
+
 - Check backend is running: `curl http://localhost:8181/health`
 - Verify port configuration in `.env`
 - For custom ports, ensure both `ARCHON_SERVER_PORT` and `VITE_ARCHON_SERVER_PORT` are set
 
 #### Docker Compose Hangs
+
 If `docker-compose` commands hang:
+
 ```bash
 # Reset Docker Compose
 docker-compose down --remove-orphans
@@ -497,17 +519,21 @@ docker system prune -f
 ```
 
 #### Hot Reload Not Working
+
 - **Frontend**: Ensure you're running in hybrid mode (`make dev-hybrid`) for best HMR experience
 - **Backend**: Check that volumes are mounted correctly in `docker-compose.yml`
 - **File permissions**: On some systems, mounted volumes may have permission issues
 
 #### Check Your Setup
+
 Run the doctor command to validate your environment:
+
 ```bash
 make doctor
 ```
 
 This will check:
+
 - Required tools installation
 - Environment variables
 - Port availability

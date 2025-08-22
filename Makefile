@@ -5,7 +5,13 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -ec
 
-.PHONY: help dev dev-hybrid dev-docker prod build test clean clean-confirm deep-clean deep-clean-confirm stop logs status install check-env
+.PHONY: help dev dev-hybrid dev-docker dev-local prod backend frontend \
+	build test test-frontend test-backend test-coverage clean clean-confirm \
+	deep-clean deep-clean-confirm stop stop-local stop-prod logs status install \
+	install-backend install-frontend check-env check-frontend-deps doctor health \
+	lint lint-frontend lint-backend typecheck format pre-commit restart \
+	watch-backend watch-mcp watch-agents shell-backend shell-mcp migrate backup-db \
+	logs-archon-server logs-archon-mcp logs-archon-agents logs-archon-ui
 
 # Default target - show help
 help:
@@ -55,7 +61,7 @@ check-frontend-deps:
 
 # Verify required env vars exist - using Node.js for cross-platform compatibility
 check-env:
-	@node -e "const fs=require('fs'); if(!fs.existsSync('.env')){console.error('ERROR: .env file not found! Create one from .env.example');process.exit(1);} const env=fs.readFileSync('.env','utf8'); const missing=[]; if(!env.includes('SUPABASE_URL=')){missing.push('SUPABASE_URL');} if(!env.includes('SUPABASE_SERVICE_KEY=')){missing.push('SUPABASE_SERVICE_KEY');} if(missing.length>0){console.error('ERROR: Missing required env vars: '+missing.join(', '));process.exit(1);} console.log('Environment OK: SUPABASE_URL and SUPABASE_SERVICE_KEY found.');"
+	@node check-env.js
 
 # Default dev target - hybrid mode
 dev: dev-hybrid
@@ -71,9 +77,9 @@ dev-hybrid: stop-prod check-env check-frontend-deps
 	@echo "====================================================="
 	@echo ""
 	@echo "Backend Services in Docker:"
-	@echo "  API Server:     http://localhost:8181"
-	@echo "  MCP Server:     http://localhost:8051"
-	@echo "  Agents Service: http://localhost:8052"
+	@echo "  API Server:     http://localhost:$${ARCHON_SERVER_PORT:-8181}"
+	@echo "  MCP Server:     http://localhost:$${ARCHON_MCP_PORT:-8051}"
+	@echo "  Agents Service: http://localhost:$${ARCHON_AGENTS_PORT:-8052}"
 	@echo ""
 	@echo "Starting frontend server..."
 	@echo ""
@@ -123,7 +129,9 @@ dev-local: check-env install
 stop-local:
 	@echo "Stopping local services..."
 	@pkill -f "python -m src.server.main" || true
-	@pkill -f "npx vite" || true
+	@pkill -f "vite" || true
+	@lsof -ti:3737 | xargs kill -9 2>/dev/null || true
+	@lsof -ti:8181 | xargs kill -9 2>/dev/null || true
 	@echo "Local services stopped"
 
 # Production environment
@@ -251,6 +259,9 @@ lint-frontend:
 lint-backend:
 	@cd python && uv run ruff check
 
+# Lint all code (frontend and backend)
+lint: lint-frontend lint-backend
+
 # Type check backend code
 typecheck:
 	@cd python && uv run mypy src/
@@ -307,13 +318,13 @@ doctor:
 	@echo "🔍 Checking development environment..."
 	@echo ""
 	@echo "=== Required Tools ==="
-	@command -v docker >/dev/null 2>&1 && echo "✅ Docker: $(shell docker --version | cut -d' ' -f3)" || echo "❌ Docker: Not installed"
-	@command -v docker-compose >/dev/null 2>&1 && echo "✅ Docker Compose: $(shell docker-compose --version | cut -d' ' -f4)" || echo "❌ Docker Compose: Not installed"
-	@command -v node >/dev/null 2>&1 && echo "✅ Node.js: $(shell node --version)" || echo "❌ Node.js: Not installed"
-	@command -v npm >/dev/null 2>&1 && echo "✅ npm: $(shell npm --version)" || echo "❌ npm: Not installed"
-	@command -v python3 >/dev/null 2>&1 && echo "✅ Python: $(shell python3 --version | cut -d' ' -f2)" || echo "❌ Python: Not installed"
-	@command -v uv >/dev/null 2>&1 && echo "✅ uv: $(shell uv --version | cut -d' ' -f2)" || echo "❌ uv: Not installed (needed for local development)"
-	@command -v make >/dev/null 2>&1 && echo "✅ Make: $(shell make --version | head -1 | cut -d' ' -f3)" || echo "❌ Make: Not installed"
+	@command -v docker >/dev/null 2>&1 && echo "✅ Docker: $$(docker --version | cut -d' ' -f3)" || echo "❌ Docker: Not installed"
+	@command -v docker-compose >/dev/null 2>&1 && echo "✅ Docker Compose: $$(docker-compose --version | cut -d' ' -f4)" || echo "❌ Docker Compose: Not installed"
+	@command -v node >/dev/null 2>&1 && echo "✅ Node.js: $$(node --version)" || echo "❌ Node.js: Not installed"
+	@command -v npm >/dev/null 2>&1 && echo "✅ npm: $$(npm --version)" || echo "❌ npm: Not installed"
+	@command -v python3 >/dev/null 2>&1 && echo "✅ Python: $$(python3 --version | cut -d' ' -f2)" || echo "❌ Python: Not installed"
+	@command -v uv >/dev/null 2>&1 && echo "✅ uv: $$(uv --version | cut -d' ' -f2)" || echo "❌ uv: Not installed (needed for local development)"
+	@command -v make >/dev/null 2>&1 && echo "✅ Make: $$(make --version | head -1 | cut -d' ' -f3)" || echo "❌ Make: Not installed"
 	@echo ""
 	@echo "=== Environment Variables ==="
 	@test -f .env && echo "✅ .env file exists" || echo "❌ .env file missing (copy from .env.example)"
