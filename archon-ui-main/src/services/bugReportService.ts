@@ -5,6 +5,7 @@
  */
 
 import { getApiUrl } from '../config/api';
+import { API_ROUTES } from '../routes';
 
 export interface BugContext {
   error: {
@@ -79,7 +80,7 @@ class BugReportService {
   private async getVersion(): Promise<string> {
     try {
       // Try to get version from main health endpoint
-      const response = await fetch('/api/system/version');
+      const response = await fetch(API_ROUTES.system.version());
       if (response.ok) {
         const data = await response.json();
         return data.version || 'v0.1.0';
@@ -114,9 +115,9 @@ class BugReportService {
     try {
       // Check services with a short timeout
       const checks = await Promise.allSettled([
-        fetch('/api/health', { signal: AbortSignal.timeout(2000) }),
-        fetch('/api/mcp/health', { signal: AbortSignal.timeout(2000) }),
-        fetch('/api/agents/health', { signal: AbortSignal.timeout(2000) })
+        fetch(API_ROUTES.health.check(), { signal: AbortSignal.timeout(2000) }),
+        fetch(API_ROUTES.mcp.health(), { signal: AbortSignal.timeout(2000) }),
+        fetch(API_ROUTES.agents.health(), { signal: AbortSignal.timeout(2000) })
       ]);
 
       services.server = checks[0].status === 'fulfilled' && (checks[0].value as Response).ok;

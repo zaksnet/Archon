@@ -312,6 +312,7 @@ export const ButtonPlayground: React.FC = () => {
         {linked ? <Link className="w-3 h-3" /> : <Unlink className="w-3 h-3" />}
       </button>
       <input
+        title="Corner Radius"
         type="number"
         min="0"
         max="50"
@@ -409,6 +410,7 @@ export const ButtonPlayground: React.FC = () => {
                     )}
                   </button>
                   <input
+                    placeholder="Show Layer 2"
                     type="checkbox"
                     checked={showLayer2}
                     onChange={(e) => setShowLayer2(e.target.checked)}
@@ -427,6 +429,7 @@ export const ButtonPlayground: React.FC = () => {
                     <div>
                       <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Color</label>
                       <select
+                        title="Select Color"
                         value={layer1Color}
                         onChange={(e) => setLayer1Color(e.target.value as ColorOption)}
                         className="w-full px-2 py-1 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded"
@@ -441,6 +444,7 @@ export const ButtonPlayground: React.FC = () => {
                     <div>
                       <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Glow</label>
                       <select
+                        title="Select Glow Intensity"
                         value={layer1Glow}
                         onChange={(e) => setLayer1Glow(e.target.value as GlowIntensity)}
                         className="w-full px-2 py-1 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded"
@@ -467,6 +471,7 @@ export const ButtonPlayground: React.FC = () => {
                     <div>
                       <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Border Glow</label>
                       <select
+                        title="Select Border Glow Intensity"
                         value={borderGlow}
                         onChange={(e) => setBorderGlow(e.target.value as GlowIntensity)}
                         className="w-full px-2 py-1 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded"
@@ -533,6 +538,7 @@ export const ButtonPlayground: React.FC = () => {
                     <div>
                       <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Color</label>
                       <select
+                        title="Select Color"
                         value={layer2Color}
                         onChange={(e) => setLayer2Color(e.target.value as ColorOption)}
                         className="w-full px-2 py-1 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded"
@@ -548,6 +554,7 @@ export const ButtonPlayground: React.FC = () => {
                     <div>
                       <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Glow</label>
                       <select
+                        title="Select Glow Intensity"
                         value={layer2Glow}
                         onChange={(e) => setLayer2Glow(e.target.value as GlowIntensity)}
                         className="w-full px-2 py-1 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded"
@@ -567,6 +574,7 @@ export const ButtonPlayground: React.FC = () => {
                       Layer 2 Inset: {layer2Inset}px
                     </label>
                     <input
+                      title="Layer 2 Inset"
                       type="range"
                       min="-20"
                       max="20"

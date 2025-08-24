@@ -27,6 +27,9 @@ from .api_routes.knowledge_api import router as knowledge_router
 from .api_routes.mcp_api import router as mcp_router
 from .api_routes.projects_api import router as projects_router
 
+# Import provider routers from the providers package
+from .providers.api import providers_router
+
 # Import Socket.IO handlers to ensure they're registered
 from .api_routes import socketio_handlers  # This registers all Socket.IO event handlers
 
@@ -48,12 +51,10 @@ from .socketio_app import create_socketio_app
 # Import missing dependencies that the modular APIs need
 try:
     from crawl4ai import AsyncWebCrawler, BrowserConfig
-    from sentence_transformers import CrossEncoder
 except ImportError:
     # These are optional dependencies for full functionality
     AsyncWebCrawler = None
     BrowserConfig = None
-    CrossEncoder = None
 
 # Logger will be initialized after credentials are loaded
 logger = logging.getLogger(__name__)
@@ -80,6 +81,11 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Archon backend...")
 
     try:
+        # Validate configuration FIRST - check for anon vs service key
+        from .config.config import get_config
+
+        get_config()  # This will raise ConfigurationError if anon key detected
+
         # Initialize credentials from database FIRST - this is the foundation for everything else
         await initialize_credentials()
 
@@ -202,6 +208,7 @@ async def skip_health_check_logs(request, call_next):
 
 
 # Include API routers
+app.include_router(providers_router)
 app.include_router(settings_router)
 app.include_router(mcp_router)
 # app.include_router(mcp_client_router)  # Removed - not part of new architecture

@@ -1,4 +1,5 @@
 import { credentialsService } from './credentialsService';
+import { API_ROUTES } from '../routes';
 
 interface HealthCheckCallback {
   onDisconnected: () => void;
@@ -33,7 +34,7 @@ class ServerHealthService {
   async checkHealth(): Promise<boolean> {
     try {
       // Use the proxied /api/health endpoint which works in both dev and Docker
-      const response = await fetch('/api/health', {
+      const response = await fetch(API_ROUTES.health.api_health(), {
         method: 'GET',
         signal: AbortSignal.timeout(10000) // 10 second timeout (increased for heavy operations)
       });

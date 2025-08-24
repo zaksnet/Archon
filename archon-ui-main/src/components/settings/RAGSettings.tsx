@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { Settings, Check, Save, Loader, ChevronDown, ChevronUp, Zap, Database } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
+import { Check, Save, Loader, ChevronDown, ChevronUp, Zap, Database } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { useToast } from '../../contexts/ToastContext';
 import { credentialsService } from '../../services/credentialsService';
+import { getProviders, Provider as LLMProvider } from '../../services/providerService';
 
 interface RAGSettingsProps {
   ragSettings: {
@@ -46,189 +48,212 @@ export const RAGSettings = ({
   const [showCrawlingSettings, setShowCrawlingSettings] = useState(false);
   const [showStorageSettings, setShowStorageSettings] = useState(false);
   const { showToast } = useToast();
-  return <Card accentColor="green" className="overflow-hidden p-8">
-        {/* Description */}
-        <p className="text-sm text-gray-600 dark:text-zinc-400 mb-6">
-          Configure Retrieval-Augmented Generation (RAG) strategies for optimal
-          knowledge retrieval.
-        </p>
-        
-        {/* Provider Selection Row */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div>
-            <Select
-              label="LLM Provider"
-              value={ragSettings.LLM_PROVIDER || 'openai'}
-              onChange={e => setRagSettings({
-                ...ragSettings,
-                LLM_PROVIDER: e.target.value
-              })}
-              accentColor="green"
-              options={[
-                { value: 'openai', label: 'OpenAI' },
-                { value: 'google', label: 'Google Gemini' },
-                { value: 'ollama', label: 'Ollama (Coming Soon)' },
-              ]}
-            />
-          </div>
-          {ragSettings.LLM_PROVIDER === 'ollama' && (
-            <div>
-              <Input
-                label="Ollama Base URL"
-                value={ragSettings.LLM_BASE_URL || 'http://localhost:11434/v1'}
-                onChange={e => setRagSettings({
-                  ...ragSettings,
-                  LLM_BASE_URL: e.target.value
-                })}
-                placeholder="http://localhost:11434/v1"
-                accentColor="green"
-              />
-            </div>
-          )}
-          <div className="flex items-end">
-            <Button 
-              variant="outline" 
-              accentColor="green" 
-              icon={saving ? <Loader className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-              className="w-full whitespace-nowrap"
-              size="md"
-              onClick={async () => {
-                try {
-                  setSaving(true);
-                  await credentialsService.updateRagSettings(ragSettings);
-                  showToast('RAG settings saved successfully!', 'success');
-                } catch (err) {
-                  console.error('Failed to save RAG settings:', err);
-                  showToast('Failed to save settings', 'error');
-                } finally {
-                  setSaving(false);
-                }
-              }}
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : 'Save Settings'}
-            </Button>
-          </div>
-        </div>
+  const [llmProviders, setLlmProviders] = useState<LLMProvider[]>([]);
 
-        {/* Model Settings Row */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <Input 
-              label="Chat Model" 
-              value={ragSettings.MODEL_CHOICE} 
-              onChange={e => setRagSettings({
-                ...ragSettings,
-                MODEL_CHOICE: e.target.value
-              })} 
-              placeholder={getModelPlaceholder(ragSettings.LLM_PROVIDER || 'openai')}
-              accentColor="green" 
-            />
-          </div>
+  useEffect(() => {
+    (async () => {
+      try {
+        const providers = await getProviders();
+        const active = providers.filter((p: LLMProvider) => p.is_active);
+        setLlmProviders(active);
+      } catch (err) {
+        console.error('Failed to load LLM providers:', err);
+        showToast('Failed to load LLM providers', 'error');
+      }
+    })();
+  }, [showToast]);
+
+  return (
+    <Card accentColor="green" className="overflow-hidden p-8">
+      {/* Description */}
+      <p className="text-sm text-gray-600 dark:text-zinc-400 mb-6">
+        Configure Retrieval-Augmented Generation (RAG) strategies for optimal
+        knowledge retrieval.
+      </p>
+
+      {/* Provider Selection Row */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <Select
+            label="LLM Provider"
+            value={ragSettings.LLM_PROVIDER || 'openai'}
+            onChange={e => setRagSettings({
+              ...ragSettings,
+              LLM_PROVIDER: e.target.value
+            })}
+            accentColor="green"
+            options={
+              llmProviders.length > 0
+                ? llmProviders.map((p: LLMProvider) => ({ value: p.name, label: p.name }))
+                : [
+                  { value: 'openai', label: 'OpenAI' },
+                  { value: 'google', label: 'Google Gemini' },
+                  { value: 'ollama', label: 'Ollama (Coming Soon)' },
+                ]
+            }
+          />
+        </div>
+        {ragSettings.LLM_PROVIDER === 'ollama' && (
           <div>
             <Input
-              label="Embedding Model"
-              value={ragSettings.EMBEDDING_MODEL || ''}
+              label="Ollama Base URL"
+              value={ragSettings.LLM_BASE_URL || 'http://localhost:11434/v1'}
               onChange={e => setRagSettings({
                 ...ragSettings,
-                EMBEDDING_MODEL: e.target.value
+                LLM_BASE_URL: e.target.value
               })}
-              placeholder={getEmbeddingPlaceholder(ragSettings.LLM_PROVIDER || 'openai')}
+              placeholder="http://localhost:11434/v1"
               accentColor="green"
             />
           </div>
+        )}
+        <div className="flex items-end">
+          <Button
+            variant="outline"
+            accentColor="green"
+            icon={saving ? <Loader className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+            className="w-full whitespace-nowrap"
+            size="md"
+            onClick={async () => {
+              try {
+                setSaving(true);
+                await credentialsService.updateRagSettings(ragSettings);
+                showToast('RAG settings saved successfully!', 'success');
+              } catch (err) {
+                console.error('Failed to save RAG settings:', err);
+                showToast('Failed to save settings', 'error');
+              } finally {
+                setSaving(false);
+              }
+            }}
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Save Settings'}
+          </Button>
         </div>
-        
-        {/* Second row: Contextual Embeddings, Max Workers, and description */}
-        <div className="grid grid-cols-8 gap-4 mb-4 p-4 rounded-lg border border-green-500/20 shadow-[0_2px_8px_rgba(34,197,94,0.1)]">
-          <div className="col-span-4">
-            <CustomCheckbox 
-              id="contextualEmbeddings" 
-              checked={ragSettings.USE_CONTEXTUAL_EMBEDDINGS} 
-              onChange={e => setRagSettings({
-                ...ragSettings,
-                USE_CONTEXTUAL_EMBEDDINGS: e.target.checked
-              })} 
-              label="Use Contextual Embeddings" 
-              description="Enhances embeddings with contextual information for better retrieval" 
-            />
-          </div>
-                      <div className="col-span-1">
-              {ragSettings.USE_CONTEXTUAL_EMBEDDINGS && (
-                <div className="flex flex-col items-center">
-                  <div className="relative ml-2 mr-6">
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={ragSettings.CONTEXTUAL_EMBEDDINGS_MAX_WORKERS}
-                      onChange={e => setRagSettings({
-                        ...ragSettings,
-                        CONTEXTUAL_EMBEDDINGS_MAX_WORKERS: parseInt(e.target.value, 10) || 3
-                      })}
-                      className="w-14 h-10 pl-1 pr-7 text-center font-medium rounded-md 
-                        bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-900 dark:to-black 
-                        border border-green-500/30 
-                        text-gray-900 dark:text-white
-                        focus:border-green-500 focus:shadow-[0_0_15px_rgba(34,197,94,0.4)]
-                        transition-all duration-200
-                        [appearance:textfield] 
-                        [&::-webkit-outer-spin-button]:appearance-none 
-                        [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <div className="absolute right-1 top-1 bottom-1 flex flex-col">
-                      <button
-                        type="button"
-                        onClick={() => setRagSettings({
-                          ...ragSettings,
-                          CONTEXTUAL_EMBEDDINGS_MAX_WORKERS: Math.min(ragSettings.CONTEXTUAL_EMBEDDINGS_MAX_WORKERS + 1, 10)
-                        })}
-                        className="flex-1 px-1 rounded-t-sm 
-                          bg-gradient-to-b from-green-500/20 to-green-600/10
-                          hover:from-green-500/30 hover:to-green-600/20
-                          border border-green-500/30 border-b-0
-                          transition-all duration-200 group"
-                      >
-                        <svg className="w-2.5 h-2.5 text-green-500 group-hover:filter group-hover:drop-shadow-[0_0_4px_rgba(34,197,94,0.8)]" 
-                          viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 5L5 1L9 5" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRagSettings({
-                          ...ragSettings,
-                          CONTEXTUAL_EMBEDDINGS_MAX_WORKERS: Math.max(ragSettings.CONTEXTUAL_EMBEDDINGS_MAX_WORKERS - 1, 1)
-                        })}
-                        className="flex-1 px-1 rounded-b-sm 
-                          bg-gradient-to-b from-green-500/20 to-green-600/10
-                          hover:from-green-500/30 hover:to-green-600/20
-                          border border-green-500/30 border-t-0
-                          transition-all duration-200 group"
-                      >
-                        <svg className="w-2.5 h-2.5 text-green-500 group-hover:filter group-hover:drop-shadow-[0_0_4px_rgba(34,197,94,0.8)]" 
-                          viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 1L5 5L9 1" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <label className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Max
-                  </label>
+      </div>
+
+      {/* Model Settings Row */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div>
+          <Input 
+            label="Chat Model" 
+            value={ragSettings.MODEL_CHOICE} 
+            onChange={e => setRagSettings({
+              ...ragSettings,
+              MODEL_CHOICE: e.target.value
+            })} 
+            placeholder={getModelPlaceholder(ragSettings.LLM_PROVIDER || 'openai')}
+            accentColor="green" 
+          />
+        </div>
+        <div>
+          <Input
+            label="Embedding Model"
+            value={ragSettings.EMBEDDING_MODEL || ''}
+            onChange={e => setRagSettings({
+              ...ragSettings,
+              EMBEDDING_MODEL: e.target.value
+            })}
+            placeholder={getEmbeddingPlaceholder(ragSettings.LLM_PROVIDER || 'openai')}
+            accentColor="green"
+          />
+        </div>
+      </div>
+
+      {/* Second row: Contextual Embeddings, Max Workers, and description */}
+      <div className="grid grid-cols-8 gap-4 mb-4 p-4 rounded-lg border border-green-500/20 shadow-[0_2px_8px_rgba(34,197,94,0.1)]">
+        <div className="col-span-4">
+          <CustomCheckbox 
+            id="contextualEmbeddings" 
+            checked={ragSettings.USE_CONTEXTUAL_EMBEDDINGS} 
+            onChange={e => setRagSettings({
+              ...ragSettings,
+              USE_CONTEXTUAL_EMBEDDINGS: e.target.checked
+            })} 
+            label="Use Contextual Embeddings" 
+            description="Enhances embeddings with contextual information for better retrieval" 
+          />
+        </div>
+        <div className="col-span-1">
+          {ragSettings.USE_CONTEXTUAL_EMBEDDINGS && (
+            <div className="flex flex-col items-center">
+              <div className="relative ml-2 mr-6">
+                <input
+                  placeholder="e.g., 3"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={ragSettings.CONTEXTUAL_EMBEDDINGS_MAX_WORKERS}
+                  onChange={e => setRagSettings({
+                    ...ragSettings,
+                    CONTEXTUAL_EMBEDDINGS_MAX_WORKERS: parseInt(e.target.value, 10) || 3
+                  })}
+                  className="w-14 h-10 pl-1 pr-7 text-center font-medium rounded-md 
+                    bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-900 dark:to-black 
+                    border border-green-500/30 
+                    text-gray-900 dark:text-white
+                    focus:border-green-500 focus:shadow-[0_0_15px_rgba(34,197,94,0.4)]
+                    transition-all duration-200
+                    [appearance:textfield] 
+                    [&::-webkit-outer-spin-button]:appearance-none 
+                    [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <div className="absolute right-1 top-1 bottom-1 flex flex-col">
+                  <button
+                    type="button"
+                    aria-label="Increase max workers"
+                    onClick={() => setRagSettings({
+                      ...ragSettings,
+                      CONTEXTUAL_EMBEDDINGS_MAX_WORKERS: Math.min(ragSettings.CONTEXTUAL_EMBEDDINGS_MAX_WORKERS + 1, 10)
+                    })}
+                    className="flex-1 px-1 rounded-t-sm 
+                      bg-gradient-to-b from-green-500/20 to-green-600/10
+                      hover:from-green-500/30 hover:to-green-600/20
+                      border border-green-500/30 border-b-0
+                      transition-all duration-200 group"
+                  >
+                    <svg className="w-2.5 h-2.5 text-green-500 group-hover:filter group-hover:drop-shadow-[0_0_4px_rgba(34,197,94,0.8)]" 
+                      viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M1 5L5 1L9 5" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Decrease max workers"
+                    onClick={() => setRagSettings({
+                      ...ragSettings,
+                      CONTEXTUAL_EMBEDDINGS_MAX_WORKERS: Math.max(ragSettings.CONTEXTUAL_EMBEDDINGS_MAX_WORKERS - 1, 1)
+                    })}
+                    className="flex-1 px-1 rounded-b-sm 
+                      bg-gradient-to-b from-green-500/20 to-green-600/10
+                      hover:from-green-500/30 hover:to-green-600/20
+                      border border-green-500/30 border-t-0
+                      transition-all duration-200 group"
+                  >
+                    <svg className="w-2.5 h-2.5 text-green-500 group-hover:filter group-hover:drop-shadow-[0_0_4px_rgba(34,197,94,0.8)]" 
+                      viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M1 1L5 5L9 1" />
+                    </svg>
+                  </button>
                 </div>
-              )}
+              </div>
+              <label className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Max
+              </label>
             </div>
-          <div className="col-span-3">
-            {ragSettings.USE_CONTEXTUAL_EMBEDDINGS && (
-              <p className="text-xs text-green-900 dark:text-blue-600 mt-2">
-                Controls parallel processing for embeddings (1-10)
-              </p>
-            )}
-          </div>
+          )}
         </div>
-        
-        {/* Third row: Hybrid Search and Agentic RAG */}
+        <div className="col-span-3">
+          {ragSettings.USE_CONTEXTUAL_EMBEDDINGS && (
+            <p className="text-xs text-green-900 dark:text-blue-600 mt-2">
+              Controls parallel processing for embeddings (1-10)
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Third row: Hybrid Search and Agentic RAG */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <CustomCheckbox 
@@ -298,6 +323,7 @@ export const RAGSettings = ({
                     Batch Size
                   </label>
                   <input
+                    placeholder="e.g., 50"
                     type="number"
                     min="10"
                     max="100"
@@ -315,6 +341,7 @@ export const RAGSettings = ({
                     Max Concurrent
                   </label>
                   <input
+                    placeholder="e.g., 10"
                     type="number"
                     min="1"
                     max="20"
@@ -351,6 +378,7 @@ export const RAGSettings = ({
                     Page Timeout (sec)
                   </label>
                   <input
+                    placeholder="e.g., 60"  
                     type="number"
                     min="5"
                     max="120"
@@ -367,6 +395,7 @@ export const RAGSettings = ({
                     Render Delay (sec)
                   </label>
                   <input
+                    placeholder="e.g., 0.5"
                     type="number"
                     min="0.1"
                     max="5"
@@ -409,6 +438,7 @@ export const RAGSettings = ({
                     Document Batch Size
                   </label>
                   <input
+                    placeholder="e.g., 50"
                     type="number"
                     min="10"
                     max="100"
@@ -426,6 +456,7 @@ export const RAGSettings = ({
                     Embedding Batch Size
                   </label>
                   <input
+                    placeholder="e.g., 100"
                     type="number"
                     min="20"
                     max="200"
@@ -443,6 +474,7 @@ export const RAGSettings = ({
                     Code Extraction Workers
                   </label>
                   <input
+                    placeholder="e.g., 3"
                     type="number"
                     min="1"
                     max="10"
@@ -472,7 +504,8 @@ export const RAGSettings = ({
             </div>
           )}
         </div>
-    </Card>;
+    </Card>
+  );
 };
 
 // Helper functions for model placeholders

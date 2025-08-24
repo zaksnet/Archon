@@ -91,7 +91,8 @@ export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // If endpoint already starts with /api, use it directly, otherwise prepend API_BASE_URL
+  const url = endpoint.startsWith('/api') ? endpoint : `${API_BASE_URL}${endpoint}`;
   try {
     const response = await fetch(url, {
       headers: {
@@ -102,13 +103,20 @@ export async function apiRequest<T>(
     });
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`;
+      let errorData: any = undefined;
       try {
-        const errorData = await response.json();
-        errorMessage = errorData.error || errorMessage;
+        errorData = await response.json();
+        // Prefer FastAPI-style detail, then message, then error
+        errorMessage = errorData?.detail || errorData?.message || errorData?.error || response.statusText || errorMessage;
       } catch {
         errorMessage = response.statusText || errorMessage;
       }
-      throw new Error(errorMessage);
+      // Include status text and any server-provided payload for context
+      const composed = `${errorMessage} (status ${response.status}${response.statusText ? ` ${response.statusText}` : ''})`;
+      const err = new Error(composed) as Error & { status?: number; response?: any };
+      (err as any).status = response.status;
+      (err as any).response = errorData;
+      throw err;
     }
     return await response.json();
   } catch (error) {

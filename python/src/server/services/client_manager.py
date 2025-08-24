@@ -19,8 +19,12 @@ def get_supabase_client() -> Client:
     Returns:
         Supabase client instance
     """
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_SERVICE_KEY")
+    raw_url = os.getenv("SUPABASE_URL", "")
+    raw_key = os.getenv("SUPABASE_SERVICE_KEY", "")
+
+    # Normalize to avoid common .env pitfalls (trailing spaces, quotes)
+    url = raw_url.strip().strip('"').strip("'")
+    key = raw_key.strip().strip('"').strip("'")
 
     if not url or not key:
         raise ValueError(
@@ -28,6 +32,19 @@ def get_supabase_client() -> Client:
         )
 
     try:
+        # Basic shape diagnostics (no secrets leaked)
+        key_len = len(key)
+        key_shape = "jwt" if key.count(".") == 2 else "unknown"
+        url_ok = bool(re.match(r"https://[^.]+\.supabase\.co", url))
+        if not url_ok:
+            search_logger.warning(
+                f"SUPABASE_URL format unexpected: url='{url}'"
+            )
+        if key_len < 20 or key_shape != "jwt":
+            search_logger.warning(
+                f"SUPABASE_SERVICE_KEY shape unexpected: length={key_len}, dots={key.count('.')}"
+            )
+
         # Let Supabase handle connection pooling internally
         client = create_client(url, key)
 
