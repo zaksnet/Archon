@@ -99,6 +99,24 @@ async def lifespan(app: FastAPI):
         # Now we can safely use the logger
         logger.info("✅ Credentials initialized")
         api_logger.info("🔥 Logfire initialized for backend")
+        
+        # Initialize provider integration if available
+        try:
+            from ..providers_clean.integration.main_server_integration import init_provider_integration
+            from .services.credential_service import credential_service
+            
+            # Get the Supabase client from credential service
+            supabase_client = credential_service.supabase
+            if supabase_client:
+                integration = init_provider_integration(supabase_client)
+                await integration.initialize()
+                logger.info("✅ Provider integration initialized")
+            else:
+                logger.warning("⚠️ Supabase client not available for provider integration")
+        except ImportError:
+            logger.info("ℹ️ Provider integration not available - using legacy system")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to initialize provider integration: {e}")
 
         # Initialize crawling context
         try:
