@@ -248,6 +248,11 @@ class CleanProviderService {
       is_default?: boolean;
     }>;
     api_key_status: Record<string, boolean>;
+    usage?: {
+      total_tokens_today: number;
+      total_cost_today: number;
+      estimated_monthly_cost: number;
+    };
     timestamp: string;
   }> {
     const response = await apiRequest(`${API_BASE}/active-models`);

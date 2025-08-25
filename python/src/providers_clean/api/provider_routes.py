@@ -573,11 +573,13 @@ async def initialize_provider_system(
 @router.get("/active-models")
 async def get_active_models_status(
     model_service: ModelConfigService = Depends(get_model_service),
-    key_manager: APIKeyManager = Depends(get_key_manager)
+    key_manager: APIKeyManager = Depends(get_key_manager),
+    usage_tracker: UsageTracker = Depends(get_usage_tracker)
 ):
     """
     Get the currently active models for all services.
     This endpoint shows exactly what models are being used by each service.
+    Also includes usage statistics (tokens and costs).
     """
     try:
         # Get all model configurations
@@ -623,9 +625,29 @@ async def get_active_models_status(
                     "is_default": True
                 }
         
+        # Get usage statistics for today
+        from datetime import datetime, timedelta
+        today = datetime.utcnow().date()
+        start_of_day = datetime.combine(today, datetime.min.time())
+        
+        # Get usage summary
+        usage_summary = await usage_tracker.get_usage_summary(start_of_day, None)
+        
+        # Calculate total tokens (approximate from summary)
+        total_tokens = usage_summary.total_tokens if usage_summary else 0
+        total_cost = float(usage_summary.total_cost) if usage_summary else 0.0
+        
+        # Get monthly estimate
+        monthly_estimate = await usage_tracker.estimate_monthly_cost()
+        
         return {
             "active_models": active_models,
             "api_key_status": api_key_status,
+            "usage": {
+                "total_tokens_today": total_tokens,
+                "total_cost_today": total_cost,
+                "estimated_monthly_cost": float(monthly_estimate)
+            },
             "timestamp": datetime.utcnow().isoformat()
         }
         

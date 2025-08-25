@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Cpu, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Cpu, AlertCircle, CheckCircle, RefreshCw, Coins, Hash } from 'lucide-react';
 import { cleanProviderService } from '../services/cleanProviderService';
 
 interface ActiveModel {
@@ -13,6 +13,11 @@ interface ActiveModel {
 interface ModelStatus {
   active_models: Record<string, ActiveModel>;
   api_key_status: Record<string, boolean>;
+  usage?: {
+    total_tokens_today: number;
+    total_cost_today: number;
+    estimated_monthly_cost: number;
+  };
   timestamp: string;
 }
 
@@ -35,6 +40,28 @@ const PROVIDER_COLORS: Record<string, string> = {
   'ollama': 'bg-gray-500',
   'openrouter': 'bg-teal-500',
   'unknown': 'bg-gray-400'
+};
+
+// Helper function to format large numbers
+const formatTokens = (num: number): string => {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  } else if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toString();
+};
+
+// Helper function to format currency
+const formatCurrency = (amount: number): string => {
+  if (amount < 0.01) {
+    return '$0.00';
+  } else if (amount < 1) {
+    return `$${amount.toFixed(3)}`;
+  } else if (amount >= 1000) {
+    return `$${(amount / 1000).toFixed(1)}K`;
+  }
+  return `$${amount.toFixed(2)}`;
 };
 
 export const ModelStatusBar: React.FC = () => {
@@ -103,8 +130,39 @@ export const ModelStatusBar: React.FC = () => {
     <div className="bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 px-4 py-1.5 shadow-lg" id="model-status-bar">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 flex-wrap">
+          {/* Usage Statistics */}
+          {modelStatus.usage && (
+            <>
+              <div className="flex items-center gap-1.5 text-xs">
+                <Hash className="w-3 h-3 text-cyan-400" />
+                <span className="text-gray-400">Tokens:</span>
+                <span className="font-mono text-cyan-300">
+                  {formatTokens(modelStatus.usage.total_tokens_today)}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-1.5 text-xs">
+                <Coins className="w-3 h-3 text-yellow-400" />
+                <span className="text-gray-400">Today:</span>
+                <span className="font-mono text-yellow-300">
+                  {formatCurrency(modelStatus.usage.total_cost_today)}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-gray-500">Month est:</span>
+                <span className="font-mono text-gray-400">
+                  {formatCurrency(modelStatus.usage.estimated_monthly_cost)}
+                </span>
+              </div>
+              
+              <div className="w-px h-4 bg-gray-700" />
+            </>
+          )}
+          
+          {/* Models */}
           <div className="flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-blue-400" />
+            <Cpu className="w-3 h-3 text-blue-400" />
             <span className="text-xs font-medium text-gray-300">Models:</span>
           </div>
           
