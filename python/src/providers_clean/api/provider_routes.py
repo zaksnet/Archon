@@ -21,6 +21,7 @@ from ..services import (
     UsageSummary
 )
 from ..models.openrouter_models import OpenRouterService, ProviderModel
+from ..embedding_models import EmbeddingModelService
 
 # Create router
 router = APIRouter(prefix="/api/providers", tags=["providers"])
@@ -55,6 +56,15 @@ class AvailableModel(BaseModel):
     has_api_key: bool
     cost_tier: Optional[str] = None
     estimated_cost_per_1k: Optional[Dict[str, float]] = None
+    is_embedding: bool = False
+    model_id: Optional[str] = None
+    description: Optional[str] = None
+    context_length: Optional[int] = None
+    input_cost: Optional[float] = None
+    output_cost: Optional[float] = None
+    supports_vision: bool = False
+    supports_tools: bool = False
+    supports_reasoning: bool = False
 
 
 class ServiceStatus(BaseModel):
@@ -468,6 +478,45 @@ async def get_available_models(
                         } if not model.is_free else None
                     ))
         
+        # Add embedding models based on configured API keys
+        api_key_status = {}
+        for provider in active_providers:
+            api_key_status[provider] = True
+        
+        embedding_models = EmbeddingModelService.get_available_models(api_key_status)
+        for emb_model in embedding_models:
+            # Determine cost tier for embedding models
+            if emb_model.cost_per_million_tokens == 0:
+                cost_tier = 'free'
+            elif emb_model.cost_per_million_tokens < 0.05:
+                cost_tier = 'low'
+            elif emb_model.cost_per_million_tokens < 0.15:
+                cost_tier = 'medium'
+            else:
+                cost_tier = 'high'
+            
+            available_models.append(AvailableModel(
+                provider=emb_model.provider,
+                model=emb_model.model_id,
+                model_string=emb_model.model_string,
+                display_name=emb_model.name,
+                has_api_key=True,  # We only show models with API keys
+                cost_tier=cost_tier,
+                estimated_cost_per_1k={
+                    'input': emb_model.cost_per_million_tokens / 1000000,  # Convert to per-token cost
+                    'output': 0  # Embeddings don't have output cost
+                } if emb_model.cost_per_million_tokens > 0 else None,
+                is_embedding=True,
+                model_id=emb_model.model_id,
+                description=f"Embedding model with {emb_model.dimensions} dimensions",
+                context_length=emb_model.max_tokens,
+                input_cost=emb_model.cost_per_million_tokens / 1000000,
+                output_cost=0,
+                supports_vision=False,
+                supports_tools=False,
+                supports_reasoning=False
+            ))
+        
         return available_models
     except Exception as e:
         raise HTTPException(
@@ -603,14 +652,17 @@ async def get_active_models_status(
                 "api_key_configured": api_key_status.get(provider, False)
             }
         
-        # Add default services if not configured
+        # Add default services if not configured (only for services defined in frontend)
         default_services = {
             'rag_agent': 'openai:gpt-4o-mini',
-            'document_agent': 'openai:gpt-4o-mini',
+            'document_agent': 'openai:gpt-4o',
+            'task_agent': 'openai:gpt-4o',
             'embeddings': 'openai:text-embedding-3-small',
             'contextual_embedding': 'openai:gpt-4o-mini',
             'source_summary': 'openai:gpt-4o-mini',
-            'code_analysis': 'openai:gpt-4o-mini'
+            'code_summary': 'openai:gpt-4o-mini',
+            'code_analysis': 'openai:gpt-4o-mini',
+            'validation': 'openai:gpt-3.5-turbo'
         }
         
         for service, default_model in default_services.items():

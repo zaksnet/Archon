@@ -30,6 +30,11 @@ class ModelConfigService:
         'document_agent': 'openai:gpt-4o',
         'task_agent': 'openai:gpt-4o',
         'embeddings': 'openai:text-embedding-3-small',
+        'contextual_embedding': 'openai:gpt-4o-mini',
+        'source_summary': 'openai:gpt-4o-mini',
+        'code_summary': 'openai:gpt-4o-mini',
+        'code_analysis': 'openai:gpt-4o-mini',
+        'validation': 'openai:gpt-3.5-turbo',
     }
     
     # Valid PydanticAI providers
