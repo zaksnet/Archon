@@ -566,3 +566,71 @@ async def initialize_provider_system(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to initialize provider system: {str(e)}"
         )
+
+
+# ==================== Active Models Status Endpoint ====================
+
+@router.get("/active-models")
+async def get_active_models_status(
+    model_service: ModelConfigService = Depends(get_model_service),
+    key_manager: APIKeyManager = Depends(get_key_manager)
+):
+    """
+    Get the currently active models for all services.
+    This endpoint shows exactly what models are being used by each service.
+    """
+    try:
+        # Get all model configurations
+        all_configs = await model_service.get_all_configs()
+        
+        # Get API key status for each provider
+        api_key_status = {}
+        for provider in ['openai', 'anthropic', 'google', 'mistral', 'groq', 'deepseek', 'ollama', 'openrouter']:
+            api_key_status[provider] = await key_manager.test_provider_key(provider)
+        
+        # Build response with service -> model mapping
+        active_models = {}
+        for service_name, model_string in all_configs.items():
+            provider = model_string.split(':')[0] if ':' in model_string else 'unknown'
+            model_name = model_string.split(':', 1)[1] if ':' in model_string else model_string
+            
+            active_models[service_name] = {
+                "model_string": model_string,
+                "provider": provider,
+                "model": model_name,
+                "api_key_configured": api_key_status.get(provider, False)
+            }
+        
+        # Add default services if not configured
+        default_services = {
+            'rag_agent': 'openai:gpt-4o-mini',
+            'document_agent': 'openai:gpt-4o-mini',
+            'embeddings': 'openai:text-embedding-3-small',
+            'contextual_embedding': 'openai:gpt-4o-mini',
+            'source_summary': 'openai:gpt-4o-mini',
+            'code_analysis': 'openai:gpt-4o-mini'
+        }
+        
+        for service, default_model in default_services.items():
+            if service not in active_models:
+                provider = default_model.split(':')[0]
+                model_name = default_model.split(':', 1)[1]
+                active_models[service] = {
+                    "model_string": default_model,
+                    "provider": provider,
+                    "model": model_name,
+                    "api_key_configured": api_key_status.get(provider, False),
+                    "is_default": True
+                }
+        
+        return {
+            "active_models": active_models,
+            "api_key_status": api_key_status,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get active models: {str(e)}"
+        )

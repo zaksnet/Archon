@@ -236,6 +236,25 @@ class CleanProviderService {
   }
 
   /**
+   * Get active models status for all services
+   * This shows exactly what models are being used by each service
+   */
+  async getActiveModels(): Promise<{
+    active_models: Record<string, {
+      model_string: string;
+      provider: string;
+      model: string;
+      api_key_configured: boolean;
+      is_default?: boolean;
+    }>;
+    api_key_status: Record<string, boolean>;
+    timestamp: string;
+  }> {
+    const response = await apiRequest(`${API_BASE}/active-models`);
+    return response;
+  }
+
+  /**
    * Get usage statistics grouped by agent
    */
   async getAgentUsageStats(

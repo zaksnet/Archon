@@ -7,6 +7,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { credentialsService } from '../../services/credentialsService';
 import { isLmConfigured } from '../../utils/onboarding';
 import { BackendStartupError } from '../BackendStartupError';
+import { ModelStatusBar } from '../ModelStatusBar';
 /**
  * Props for the MainLayout component
  */
@@ -171,6 +172,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       {/* Show backend startup error if backend failed to start */}
       {backendStartupFailed && <BackendStartupError />}
       
+      {/* Model Status Bar - Shows current active models */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <ModelStatusBar />
+      </div>
+      
       {/* Fixed full-page background grid that doesn't scroll */}
       <div className="fixed inset-0 neon-grid pointer-events-none z-0"></div>
       {/* Floating Navigation */}
@@ -178,7 +184,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         <SideNavigation />
       </div>
       {/* Main Content Area - no left margin to allow grid to extend full width */}
-      <div className="relative flex-1 pl-[100px] z-10">
+      <div className="relative flex-1 pl-[100px] pt-16 z-10">
         <div className="container mx-auto px-8 relative">
           <div className="min-h-screen pt-8 pb-16">{children}</div>
         </div>
