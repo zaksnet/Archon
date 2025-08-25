@@ -23,8 +23,8 @@ import type {
   ProviderHealth
 } from '../types/cleanProvider';
 
-// API base path
-const API_BASE = '/api/providers';
+// API base path (no /api prefix since apiRequest adds it)
+const API_BASE = '/providers';
 
 class CleanProviderService {
   // ==================== Model Configuration ====================
