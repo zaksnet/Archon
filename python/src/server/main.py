@@ -30,6 +30,12 @@ from .api_routes.projects_api import router as projects_router
 # Import provider routers from the providers package
 from .providers.api import providers_router
 
+# Import clean provider routes
+try:
+    from ..providers_clean.api.provider_routes import router as clean_providers_router
+except ImportError:
+    clean_providers_router = None
+
 # Import Socket.IO handlers to ensure they're registered
 from .api_routes import socketio_handlers  # This registers all Socket.IO event handlers
 
@@ -209,6 +215,9 @@ async def skip_health_check_logs(request, call_next):
 
 # Include API routers
 app.include_router(providers_router)
+# Include clean provider routes if available
+if clean_providers_router:
+    app.include_router(clean_providers_router)
 app.include_router(settings_router)
 app.include_router(mcp_router)
 # app.include_router(mcp_client_router)  # Removed - not part of new architecture

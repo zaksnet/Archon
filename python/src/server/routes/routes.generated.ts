@@ -2,7 +2,7 @@
  * Auto-generated API route definitions
  * DO NOT EDIT MANUALLY - This file is generated from Python route definitions
  * 
- * Generated at: 2025-08-24T15:22:45.274730
+ * Generated at: 2025-08-25T11:07:46.699669
  */
 
 /**
@@ -84,7 +84,6 @@ export const API_ROUTES = {
     create: (): string => '/api/providers',
     create_incident: (provider_id: string): string => `/api/providers/${provider_id}/incidents`,
     create_quota: (provider_id: string): string => `/api/providers/${provider_id}/quotas`,
-    create_routing_rule: (): string => '/api/providers/routing-rules',
     delete: (provider_id: string): string => `/api/providers/${provider_id}`,
     detail: (provider_id: string): string => `/api/providers/${provider_id}`,
     embeddings: (): string => '/api/providers/embeddings',
@@ -96,7 +95,6 @@ export const API_ROUTES = {
     list_incidents: (provider_id: string): string => `/api/providers/${provider_id}/incidents`,
     list_models: (): string => '/api/providers/models/',
     list_quotas: (provider_id: string): string => `/api/providers/${provider_id}/quotas`,
-    list_routing_rules: (): string => '/api/providers/routing-rules',
     rotate_credential: (credential_id: string): string => `/api/providers/credentials/${credential_id}/rotate`,
     set_active: (): string => '/api/providers/active',
     update: (provider_id: string): string => `/api/providers/${provider_id}`,
@@ -328,12 +326,10 @@ export const ALL_ROUTES: string[] = [
   '/api/tasks',
   '/api/providers/chat',
   '/api/providers',
-  '/api/providers/routing-rules',
   '/api/providers/embeddings',
   '/api/providers/active',
   '/api/providers',
   '/api/providers/models/',
-  '/api/providers/routing-rules',
   '/api/providers/active',
   '/api/providers/usage/summary',
   '/api/credentials',

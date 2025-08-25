@@ -3,7 +3,7 @@ import React from 'react';
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
   color?: 'purple' | 'green' | 'pink' | 'blue' | 'gray' | 'orange' | 'red' | 'yellow';
-  variant?: 'solid' | 'outline' | 'success' | 'error' | 'warning' | 'info';
+  variant?: 'solid' | 'outline' | 'success' | 'error' | 'warning' | 'info' | 'primary' | 'secondary';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -23,12 +23,14 @@ export const Badge: React.FC<BadgeProps> = ({
   };
 
   // Handle semantic variants
-  if (variant === 'success' || variant === 'error' || variant === 'warning' || variant === 'info') {
+  if (variant === 'success' || variant === 'error' || variant === 'warning' || variant === 'info' || variant === 'primary' || variant === 'secondary') {
     const semanticClasses = {
       success: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
       error: 'bg-red-500/10 text-red-600 dark:bg-red-500/10 dark:text-red-400',
       warning: 'bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400',
-      info: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'
+      info: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
+      primary: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-500/20',
+      secondary: 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-500/20'
     };
     
     return (
