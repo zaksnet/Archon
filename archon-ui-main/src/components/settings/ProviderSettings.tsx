@@ -33,7 +33,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { cleanProviderService } from '../../services/cleanProviderService';
 import type { ProviderType, ProviderStatus, ProviderMetadata } from '../../types/cleanProvider';
 import { Button } from '../ui/Button';
-import { AddProviderModal } from '../providers/AddProviderModal';
+import { AddProviderModal } from '../agents/AddProviderModal';
 
 interface ProviderCardProps {
   provider: ProviderStatus;
