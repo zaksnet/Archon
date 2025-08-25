@@ -100,23 +100,23 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Credentials initialized")
         api_logger.info("🔥 Logfire initialized for backend")
         
-        # Initialize provider integration if available
+        # Initialize the new simplified ProviderManager
         try:
-            from ..providers_clean.integration.main_server_integration import init_provider_integration
+            from .services.provider_manager import ProviderManager
             from .services.credential_service import credential_service
             
-            # Get the Supabase client from credential service
             supabase_client = credential_service.supabase
             if supabase_client:
-                integration = init_provider_integration(supabase_client)
-                await integration.initialize()
-                logger.info("✅ Provider integration initialized")
+                provider_manager = ProviderManager(supabase_client)
+                app.state.provider_manager = provider_manager
+                logger.info("✅ ProviderManager initialized successfully")
             else:
-                logger.warning("⚠️ Supabase client not available for provider integration")
-        except ImportError:
-            logger.info("ℹ️ Provider integration not available - using legacy system")
+                logger.warning("⚠️ Supabase client not available for ProviderManager")
+                app.state.provider_manager = None
         except Exception as e:
-            logger.warning(f"⚠️ Failed to initialize provider integration: {e}")
+            logger.error(f"❌ Failed to initialize new ProviderManager: {e}", exc_info=True)
+            app.state.provider_manager = None
+        
 
         # Initialize crawling context
         try:
