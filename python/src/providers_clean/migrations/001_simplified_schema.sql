@@ -3,6 +3,7 @@
 -- =====================================================
 -- Direct integration with PydanticAI's native model handling
 -- No custom provider clients, just configuration management
+-- Full RLS with service key only access
 -- =====================================================
 
 -- Clean up old complex provider tables
@@ -92,6 +93,48 @@ CREATE INDEX idx_model_usage_period ON public.model_usage(period_start, period_e
 CREATE INDEX idx_model_usage_service ON public.model_usage(service_name, period_start DESC);
 
 -- =====================================================
+-- ROW LEVEL SECURITY (RLS)
+-- =====================================================
+
+-- Enable RLS on all tables
+ALTER TABLE public.model_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.model_usage ENABLE ROW LEVEL SECURITY;
+
+-- Drop any existing policies
+DROP POLICY IF EXISTS "Service role full access to model_config" ON public.model_config;
+DROP POLICY IF EXISTS "Service role full access to api_keys" ON public.api_keys;
+DROP POLICY IF EXISTS "Service role full access to model_usage" ON public.model_usage;
+
+-- =====================================================
+-- RLS POLICIES - SERVICE KEY ONLY ACCESS
+-- =====================================================
+
+-- Model Config - Service role only
+CREATE POLICY "Service role full access to model_config" 
+    ON public.model_config
+    FOR ALL 
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- API Keys - Service role only (sensitive data)
+CREATE POLICY "Service role full access to api_keys" 
+    ON public.api_keys
+    FOR ALL 
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- Model Usage - Service role only
+CREATE POLICY "Service role full access to model_usage" 
+    ON public.model_usage
+    FOR ALL 
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- =====================================================
 -- FUNCTIONS
 -- =====================================================
 
@@ -102,7 +145,10 @@ CREATE OR REPLACE FUNCTION increment_usage(
     p_tokens INTEGER,
     p_cost NUMERIC,
     p_period_start TIMESTAMPTZ
-) RETURNS void AS $$
+) RETURNS void 
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     INSERT INTO model_usage (
         service_name, 
@@ -131,7 +177,10 @@ $$ LANGUAGE plpgsql;
 
 -- Function to get current model for a service
 CREATE OR REPLACE FUNCTION get_current_model(p_service TEXT)
-RETURNS TEXT AS $$
+RETURNS TEXT 
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
     v_model TEXT;
 BEGIN
@@ -144,21 +193,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =====================================================
--- DEFAULT DATA
+-- VIEWS WITH RLS
 -- =====================================================
 
--- Insert default model configurations
-INSERT INTO public.model_config (service_name, model_string, temperature) VALUES
-    ('rag_agent', 'openai:gpt-4o-mini', 0.7),
-    ('document_agent', 'openai:gpt-4o', 0.7),
-    ('embeddings', 'openai:text-embedding-3-small', 0.0)
-ON CONFLICT (service_name) DO NOTHING;
-
--- =====================================================
--- VIEWS
--- =====================================================
-
--- View for daily usage summary
+-- View for daily usage summary (inherits RLS from base table)
 CREATE OR REPLACE VIEW daily_usage_summary AS
 SELECT 
     service_name,
@@ -171,7 +209,7 @@ FROM model_usage
 GROUP BY service_name, model_string, DATE(period_start)
 ORDER BY date DESC, service_name;
 
--- View for active configurations
+-- View for active configurations (inherits RLS from base tables)
 CREATE OR REPLACE VIEW active_model_config AS
 SELECT 
     mc.service_name,
@@ -185,23 +223,56 @@ FROM model_config mc
 LEFT JOIN api_keys ak ON SPLIT_PART(mc.model_string, ':', 1) = ak.provider AND ak.is_active = true;
 
 -- =====================================================
--- PERMISSIONS (if using RLS)
+-- GRANT PERMISSIONS
 -- =====================================================
 
--- Enable RLS on sensitive tables
-ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
+-- Grant usage on schema
+GRANT USAGE ON SCHEMA public TO service_role;
 
--- Create policy for service role (full access)
-CREATE POLICY "Service role has full access to api_keys" ON public.api_keys
-    FOR ALL USING (auth.role() = 'service_role');
+-- Grant all privileges on tables to service_role
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO service_role;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO service_role;
+
+-- Revoke all access from anon role (if exists)
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon;
+
+-- Revoke all access from authenticated role (if exists)
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM authenticated;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM authenticated;
+
+-- =====================================================
+-- DEFAULT DATA
+-- =====================================================
+
+-- Insert default model configurations (only if not exists)
+INSERT INTO public.model_config (service_name, model_string, temperature) VALUES
+    ('rag_agent', 'openai:gpt-4o-mini', 0.7),
+    ('document_agent', 'openai:gpt-4o', 0.7),
+    ('embeddings', 'openai:text-embedding-3-small', 0.0)
+ON CONFLICT (service_name) DO NOTHING;
 
 -- =====================================================
 -- COMMENTS
 -- =====================================================
 
-COMMENT ON TABLE public.model_config IS 'Configuration for PydanticAI models used by each service';
-COMMENT ON TABLE public.api_keys IS 'Encrypted API keys for AI providers';
-COMMENT ON TABLE public.model_usage IS 'Usage tracking for cost monitoring';
-COMMENT ON FUNCTION increment_usage IS 'Atomically increment usage metrics';
-COMMENT ON VIEW daily_usage_summary IS 'Daily aggregated usage statistics';
-COMMENT ON VIEW active_model_config IS 'Current model configuration with provider status';
+COMMENT ON TABLE public.model_config IS 'Configuration for PydanticAI models used by each service - Service key access only';
+COMMENT ON TABLE public.api_keys IS 'Encrypted API keys for AI providers - Service key access only';
+COMMENT ON TABLE public.model_usage IS 'Usage tracking for cost monitoring - Service key access only';
+COMMENT ON FUNCTION increment_usage IS 'Atomically increment usage metrics - SECURITY DEFINER function';
+COMMENT ON FUNCTION get_current_model IS 'Get current model configuration - SECURITY DEFINER function';
+COMMENT ON VIEW daily_usage_summary IS 'Daily aggregated usage statistics - inherits RLS from base table';
+COMMENT ON VIEW active_model_config IS 'Current model configuration with provider status - inherits RLS from base tables';
+
+-- =====================================================
+-- SECURITY NOTES
+-- =====================================================
+-- 1. All tables have RLS enabled
+-- 2. Only service_role (service key) can access these tables
+-- 3. Functions use SECURITY DEFINER with explicit search_path for security
+-- 4. No access granted to anon or authenticated roles
+-- 5. Views inherit RLS from their base tables
+-- =====================================================
