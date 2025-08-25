@@ -18,12 +18,24 @@ logger = get_logger(__name__)
 
 
 async def _get_model_choice(provider: str | None = None) -> str:
-    """Get model choice from provider integration."""
-    try:
-        return await get_llm_model(provider, service="source_summary")
-    except Exception as e:
-        logger.warning(f"Error getting model choice: {e}, using default")
-        return "gpt-4o-mini"
+    """Get model choice for source summary service."""
+    # Try to get from ProviderManager if available
+    from .provider_manager import ProviderManager
+    from .client_manager import get_supabase_client
+    
+    client = get_supabase_client()
+    if not client:
+        raise ValueError("Database client not available. Cannot determine model configuration.")
+    
+    pm = ProviderManager(client)
+    config = await pm.get_service_config('source_summary')
+    model = config.get('model')
+    
+    if not model:
+        raise ValueError("No model configured for 'source_summary' service. Please configure in the Agents page.")
+    
+    logger.info(f"Using model for source_summary: {model}")
+    return model
 
 
 async def extract_source_summary(
@@ -65,8 +77,18 @@ The above content is from the documentation for '{source_id}'. Please provide a 
 """
 
     try:
-        # Use provider integration for LLM client
-        async with get_llm_client(provider=provider) as client:
+        # Get provider from ProviderManager for source_summary service
+        from .provider_manager import ProviderManager
+        from .client_manager import get_supabase_client
+        
+        supabase_client = get_supabase_client()
+        if not supabase_client:
+            raise ValueError("Database client not available")
+        
+        pm = ProviderManager(supabase_client)
+        
+        # Use ProviderManager to get client for source_summary service
+        async with pm.get_client('source_summary') as client:
             # Call the API to generate the summary
             response = await client.chat.completions.create(
             model=model_choice,
@@ -129,8 +151,18 @@ async def generate_source_title_and_metadata(
     # Try to generate a better title from content
     if content and len(content.strip()) > 100:
         try:
-            # Use provider integration for LLM client
-            async with get_llm_client(provider=provider) as client:
+            # Get provider from ProviderManager for source_summary service
+            from .provider_manager import ProviderManager
+            from .client_manager import get_supabase_client
+            
+            supabase_client = get_supabase_client()
+            if not supabase_client:
+                raise ValueError("Database client not available")
+            
+            pm = ProviderManager(supabase_client)
+            
+            # Use ProviderManager to get client for source_summary service
+            async with pm.get_client('source_summary') as client:
                 # Get model from provider configuration
                 model_choice = await _get_model_choice(provider)
 

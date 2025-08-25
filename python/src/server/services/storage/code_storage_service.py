@@ -710,6 +710,7 @@ async def add_code_examples_to_supabase(
     url_to_full_document: dict[str, str] | None = None,
     progress_callback: Callable | None = None,
     provider: str | None = None,
+    provider_manager: Any | None = None,
 ):
     """
     Add code examples to the Supabase code_examples table in batches.
@@ -813,7 +814,12 @@ async def add_code_examples_to_supabase(
             batch_texts = combined_texts
 
         # Create embeddings for the batch
-        result = await create_embeddings_batch(batch_texts, provider=provider)
+        result = await create_embeddings_batch(
+            batch_texts, 
+            provider=provider,
+            provider_manager=provider_manager,
+            use_new_provider_manager=provider_manager is not None
+        )
 
         # Log any failures
         if result.has_failures:

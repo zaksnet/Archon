@@ -24,16 +24,18 @@ class DocumentStorageOperations:
     Handles document storage operations for crawled content.
     """
     
-    def __init__(self, supabase_client):
+    def __init__(self, supabase_client, provider_manager=None):
         """
         Initialize document storage operations.
         
         Args:
             supabase_client: The Supabase client for database operations
+            provider_manager: Optional ProviderManager instance for new system
         """
         self.supabase_client = supabase_client
+        self.provider_manager = provider_manager
         self.doc_storage_service = DocumentStorageService(supabase_client)
-        self.code_extraction_service = CodeExtractionService(supabase_client)
+        self.code_extraction_service = CodeExtractionService(supabase_client, provider_manager)
     
     async def process_and_store_documents(
         self,
@@ -151,7 +153,8 @@ class DocumentStorageOperations:
             progress_callback=progress_callback,  # Pass the callback for progress updates
             enable_parallel_batches=True,  # Enable parallel processing
             provider=None,  # Use configured provider
-            cancellation_check=cancellation_check  # Pass cancellation check
+            cancellation_check=cancellation_check,  # Pass cancellation check
+            provider_manager=self.provider_manager  # Pass the new ProviderManager
         )
         
         # Calculate actual chunk count
