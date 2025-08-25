@@ -61,34 +61,22 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     modelType: 'llm',
     costProfile: 'medium'
   },
-  
-  // Backend Services
-  llm_primary: {
-    id: 'llm_primary',
-    name: 'Primary LLM',
-    icon: '🧠',
-    description: 'Main language model for general tasks',
-    category: 'service',
+  task_agent: {
+    id: 'task_agent',
+    name: 'Task Agent',
+    icon: '📋',
+    description: 'Creates and manages project tasks with AI assistance',
+    category: 'agent',
     supportsTemperature: true,
     supportsMaxTokens: true,
     defaultModel: 'openai:gpt-4o',
     modelType: 'llm',
     costProfile: 'high'
   },
-  llm_secondary: {
-    id: 'llm_secondary',
-    name: 'Secondary LLM',
-    icon: '🔄',
-    description: 'Fallback model for simpler tasks',
-    category: 'service',
-    supportsTemperature: true,
-    supportsMaxTokens: true,
-    defaultModel: 'openai:gpt-4o-mini',
-    modelType: 'llm',
-    costProfile: 'medium'
-  },
-  embedding: {
-    id: 'embedding',
+  
+  // Backend Services
+  embeddings: {
+    id: 'embeddings',
     name: 'Embedding Service',
     icon: '🧩',
     description: 'Converts documents to searchable vectors',
@@ -98,6 +86,42 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     defaultModel: 'openai:text-embedding-3-small',
     modelType: 'embedding',
     costProfile: 'low'
+  },
+  contextual_embedding: {
+    id: 'contextual_embedding',
+    name: 'Contextual Embeddings',
+    icon: '🎯',
+    description: 'Generates context-aware embeddings for better search',
+    category: 'service',
+    supportsTemperature: true,
+    supportsMaxTokens: false,
+    defaultModel: 'openai:gpt-4o-mini',
+    modelType: 'llm',
+    costProfile: 'medium'
+  },
+  source_summary: {
+    id: 'source_summary',
+    name: 'Summary Generation',
+    icon: '📝',
+    description: 'Creates summaries for documents and sources',
+    category: 'service',
+    supportsTemperature: true,
+    supportsMaxTokens: true,
+    defaultModel: 'openai:gpt-4o-mini',
+    modelType: 'llm',
+    costProfile: 'medium'
+  },
+  code_summary: {
+    id: 'code_summary',
+    name: 'Code Summaries',
+    icon: '🔧',
+    description: 'Generates descriptions for code examples',
+    category: 'service',
+    supportsTemperature: true,
+    supportsMaxTokens: false,
+    defaultModel: 'openai:gpt-4o-mini',
+    modelType: 'llm',
+    costProfile: 'medium'
   },
   code_analysis: {
     id: 'code_analysis',

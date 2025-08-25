@@ -217,8 +217,10 @@ class CleanProviderService {
     
     // Filter to only agent/service configs we care about
     const agentIds = [
-      'document_agent', 'rag_agent', 'llm_primary', 
-      'llm_secondary', 'embedding', 'code_analysis', 'validation'
+      'document_agent', 'rag_agent', 'task_agent',
+      'embeddings', 'contextual_embedding',
+      'source_summary', 'code_summary',
+      'code_analysis', 'validation'
     ];
     
     for (const id of agentIds) {

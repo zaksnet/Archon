@@ -10,9 +10,11 @@ export type ProviderType = string;  // Allow any string for dynamic providers
 export type ServiceType = 
   | 'document_agent'
   | 'rag_agent'
-  | 'llm_primary' 
-  | 'llm_secondary' 
-  | 'embedding' 
+  | 'task_agent'
+  | 'embeddings'
+  | 'contextual_embedding'
+  | 'source_summary'
+  | 'code_summary'
   | 'code_analysis' 
   | 'validation';
 
@@ -63,6 +65,15 @@ export interface AvailableModel {
     input: number;
     output: number;
   } | null;
+  is_embedding?: boolean;  // Flag to identify embedding models
+  model_id?: string;
+  description?: string;
+  context_length?: number;
+  input_cost?: number;
+  output_cost?: number;
+  supports_vision?: boolean;
+  supports_tools?: boolean;
+  supports_reasoning?: boolean;
 }
 
 // Service status

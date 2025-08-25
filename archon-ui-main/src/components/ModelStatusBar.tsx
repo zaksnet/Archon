@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Cpu, AlertCircle, CheckCircle, RefreshCw, Coins, Hash } from 'lucide-react';
 import { cleanProviderService } from '../services/cleanProviderService';
+import { AGENT_CONFIGS } from '../types/agent';
 
 interface ActiveModel {
   model_string: string;
@@ -20,15 +21,6 @@ interface ModelStatus {
   };
   timestamp: string;
 }
-
-const SERVICE_DISPLAY_NAMES: Record<string, string> = {
-  'rag_agent': 'RAG Agent',
-  'document_agent': 'Doc Agent',
-  'embeddings': 'Embeddings',
-  'contextual_embedding': 'Context Embed',
-  'source_summary': 'Summaries',
-  'code_analysis': 'Code Analysis'
-};
 
 const PROVIDER_COLORS: Record<string, string> = {
   'openai': 'bg-green-500',
@@ -166,14 +158,19 @@ export const ModelStatusBar: React.FC = () => {
             <span className="text-xs font-medium text-gray-300">Models:</span>
           </div>
           
-          {Object.entries(modelStatus.active_models).map(([service, model]) => (
+          {Object.entries(modelStatus.active_models)
+            .filter(([service]) => {
+              // Only show services that are defined in our agent registry
+              return AGENT_CONFIGS[service] !== undefined;
+            })
+            .map(([service, model]) => (
             <div
               key={service}
               className="flex items-center gap-1 bg-gray-800/50 rounded px-1.5 py-0.5"
-              title={`${SERVICE_DISPLAY_NAMES[service] || service}: ${model.model_string}`}
+              title={`${AGENT_CONFIGS[service]?.name || service}: ${model.model_string}`}
             >
               <span className="text-[10px] text-gray-400">
-                {SERVICE_DISPLAY_NAMES[service] || service}:
+                {AGENT_CONFIGS[service]?.name || service}:
               </span>
               <div className="flex items-center gap-1">
                 <div

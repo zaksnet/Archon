@@ -58,9 +58,11 @@ export const AgentCard: React.FC<AgentCardProps> = ({
   // Filter models based on type (LLM vs embedding)
   const compatibleModels = availableModels.filter(m => {
     if (agent.modelType === 'embedding') {
-      return m.model_string.includes('embedding');
+      // Use the is_embedding flag if available, otherwise fall back to string check
+      return m.is_embedding || m.model_string.includes('embedding');
     }
-    return !m.model_string.includes('embedding');
+    // For LLM models, exclude embedding models
+    return !m.is_embedding && !m.model_string.includes('embedding');
   });
 
   const handleModelSelect = async (model: AvailableModel, config?: { temperature?: number; maxTokens?: number }) => {
