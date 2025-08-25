@@ -8,17 +8,13 @@ import React, { useState, useEffect } from 'react';
 import {
   Brain,
   Key,
-  DollarSign,
   ChevronDown,
-  ChevronUp,
   AlertCircle,
-  BarChart3,
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { cleanProviderService } from '../services/cleanProviderService';
 import { ProviderSettings } from '../components/settings/ProviderSettings';
 import { AgentCard } from '../components/agents/AgentCard';
-import { Button } from '../components/ui/Button';
 import { getAgents, getServices } from '../types/agent';
 import type { AvailableModel, ModelConfig } from '../types/cleanProvider';
 
@@ -28,7 +24,6 @@ export const AgentsPage: React.FC = () => {
   const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
   const [agentConfigs, setAgentConfigs] = useState<Record<string, ModelConfig>>({});
   const [loading, setLoading] = useState(true);
-  const [monthlyUsage, setMonthlyUsage] = useState<any>(null);
   
   const { showToast } = useToast();
 
@@ -52,15 +47,6 @@ export const AgentsPage: React.FC = () => {
       
       setAvailableModels(models || []);
       setAgentConfigs(configs || {});
-      
-      // Load usage data separately (non-critical)
-      try {
-        const usage = await cleanProviderService.getUsageSummary();
-        setMonthlyUsage(usage);
-      } catch (usageError) {
-        console.warn('Failed to load usage summary (non-critical):', usageError);
-        // Usage data is optional, don't fail the whole load
-      }
       
       // Check if any API keys are configured
       const activeProviders = await cleanProviderService.getActiveProviders();
@@ -289,50 +275,6 @@ export const AgentsPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Usage Summary */}
-      {monthlyUsage && (
-        <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              Usage This Month
-            </h3>
-            <Button variant="ghost" size="sm">
-              View Details
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
-                <DollarSign className="w-4 h-4" />
-                Total Cost
-              </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                ${monthlyUsage.total_cost?.toFixed(2) || '0.00'}
-              </div>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Total Requests
-              </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                {monthlyUsage.total_requests?.toLocaleString() || '0'}
-              </div>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Tokens Used
-              </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                {((monthlyUsage.total_input_tokens + monthlyUsage.total_output_tokens) / 1000).toFixed(0)}k
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
