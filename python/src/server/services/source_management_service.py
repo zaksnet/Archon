@@ -134,16 +134,16 @@ async def generate_source_title_and_metadata(
                 # Get model from provider configuration
                 model_choice = await _get_model_choice(provider)
 
-            # Limit content for prompt
-            sample_content = content[:3000] if len(content) > 3000 else content
+                # Limit content for prompt
+                sample_content = content[:3000] if len(content) > 3000 else content
 
-            prompt = f"""Based on this content from {source_id}, generate a concise, descriptive title (3-6 words) that captures what this source is about:
+                prompt = f"""Based on this content from {source_id}, generate a concise, descriptive title (3-6 words) that captures what this source is about:
 
 {sample_content}
 
 Provide only the title, nothing else."""
 
-            response = await client.chat.completions.create(
+                response = await client.chat.completions.create(
                     model=model_choice,
                     messages=[
                         {
@@ -154,11 +154,11 @@ Provide only the title, nothing else."""
                     ],
                 )
 
-            generated_title = response.choices[0].message.content.strip()
-            # Clean up the title
-            generated_title = generated_title.strip("\"'")
-            if len(generated_title) < 50:  # Sanity check
-                title = generated_title
+                generated_title = response.choices[0].message.content.strip()
+                # Clean up the title
+                generated_title = generated_title.strip("\"'")
+                if len(generated_title) < 50:  # Sanity check
+                    title = generated_title
 
         except Exception as e:
             search_logger.error(f"Error generating title for {source_id}: {e}")
