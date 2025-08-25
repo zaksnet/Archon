@@ -75,10 +75,10 @@ export const ModelStatusBar: React.FC = () => {
   // Always show a bar, even while loading
   if (loading) {
     return (
-      <div className="bg-gray-900 border-b border-gray-700 px-4 py-2 shadow-lg">
+      <div className="bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 px-4 py-1.5 shadow-lg">
         <div className="flex items-center gap-2 text-gray-400">
-          <Cpu className="w-4 h-4 animate-pulse" />
-          <span className="text-sm">Loading model status...</span>
+          <Cpu className="w-3 h-3 animate-pulse" />
+          <span className="text-xs">Loading model status...</span>
         </div>
       </div>
     );
@@ -86,10 +86,10 @@ export const ModelStatusBar: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-red-900/20 border-b border-red-800 px-4 py-2">
+      <div className="bg-red-900/20 border-b border-red-800 px-4 py-1.5">
         <div className="flex items-center gap-2 text-red-400">
-          <AlertCircle className="w-4 h-4" />
-          <span className="text-sm">{error}</span>
+          <AlertCircle className="w-3 h-3" />
+          <span className="text-xs">{error}</span>
         </div>
       </div>
     );
@@ -100,41 +100,40 @@ export const ModelStatusBar: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 px-4 py-2 shadow-lg">
+    <div className="bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 px-4 py-1.5 shadow-lg" id="model-status-bar">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Cpu className="w-4 h-4 text-blue-400" />
-            <span className="text-sm font-medium text-gray-300">Active Models:</span>
+            <span className="text-xs font-medium text-gray-300">Models:</span>
           </div>
           
           {Object.entries(modelStatus.active_models).map(([service, model]) => (
             <div
               key={service}
-              className="flex items-center gap-1.5 bg-gray-800 rounded px-2 py-1"
+              className="flex items-center gap-1 bg-gray-800/50 rounded px-1.5 py-0.5"
               title={`${SERVICE_DISPLAY_NAMES[service] || service}: ${model.model_string}`}
             >
-              <span className="text-xs text-gray-400">
+              <span className="text-[10px] text-gray-400">
                 {SERVICE_DISPLAY_NAMES[service] || service}:
               </span>
               <div className="flex items-center gap-1">
                 <div
-                  className={`w-2 h-2 rounded-full ${
+                  className={`w-1.5 h-1.5 rounded-full ${
                     PROVIDER_COLORS[model.provider] || PROVIDER_COLORS.unknown
                   }`}
+                  title={model.provider}
                 />
-                <span className="text-xs font-mono text-gray-200">
-                  {model.model.length > 20 
-                    ? `${model.model.substring(0, 20)}...` 
+                <span className="text-[10px] font-mono text-gray-300">
+                  {model.model.length > 15 
+                    ? `${model.model.substring(0, 15)}...` 
                     : model.model}
                 </span>
-                {model.api_key_configured ? (
-                  <CheckCircle className="w-3 h-3 text-green-400" />
-                ) : (
-                  <AlertCircle className="w-3 h-3 text-yellow-400" />
+                {!model.api_key_configured && (
+                  <AlertCircle className="w-2.5 h-2.5 text-yellow-500" title="API key not configured" />
                 )}
                 {model.is_default && (
-                  <span className="text-[10px] text-gray-500 ml-1">(default)</span>
+                  <span className="text-[9px] text-gray-600">(def)</span>
                 )}
               </div>
             </div>
@@ -153,16 +152,6 @@ export const ModelStatusBar: React.FC = () => {
         </button>
       </div>
 
-      {/* Provider Legend */}
-      <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500">
-        <span>Providers:</span>
-        {Object.entries(PROVIDER_COLORS).filter(([key]) => key !== 'unknown').map(([provider, color]) => (
-          <div key={provider} className="flex items-center gap-1">
-            <div className={`w-2 h-2 rounded-full ${color}`} />
-            <span>{provider}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 };

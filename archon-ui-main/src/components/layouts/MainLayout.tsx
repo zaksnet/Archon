@@ -179,13 +179,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       
       {/* Fixed full-page background grid that doesn't scroll */}
       <div className="fixed inset-0 neon-grid pointer-events-none z-0"></div>
+      
       {/* Floating Navigation */}
       <div className="fixed left-6 top-1/2 -translate-y-1/2 z-50">
         <SideNavigation />
       </div>
-      {/* Main Content Area - no left margin to allow grid to extend full width */}
-      <div className="relative flex-1 pl-[100px] pt-16 z-10">
-        <div className="container mx-auto px-8 relative">
+      
+      {/* Main Content Area with proper top padding to account for status bar */}
+      {/* The compact status bar is approximately 32-40px tall */}
+      <div className="relative flex-1 pl-[100px] z-10">
+        <div className="container mx-auto px-8 relative pt-12">
           <div className="min-h-screen pt-8 pb-16">{children}</div>
         </div>
       </div>
